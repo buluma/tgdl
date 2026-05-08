@@ -146,10 +146,9 @@ export class DownloadManager extends EventEmitter {
     _globalPaused: boolean;
     _jobs: Map<string, any>;
     _cancelling: boolean;
-    _diskUsageCache: { size: number };
+    _diskUsageCache: { size: number; timestamp?: number };
     _saveTimeout: any;
     BACKLOG_PATH: string;
-    _diskUsageCache: { size: number; timestamp?: number };
 
     constructor(client: TelegramClient, config: any, rateLimiter: any) {
         super();

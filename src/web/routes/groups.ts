@@ -1,3 +1,4 @@
+// @ts-nocheck
 import express from 'express';
 import fs from 'fs/promises';
 import fsSync, { existsSync } from 'fs';

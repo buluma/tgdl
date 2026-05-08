@@ -14,7 +14,10 @@ declare module 'telegram' {
     getDialogs(options?: any): Promise<any[]>;
     downloadMedia(message: any, options?: any): Promise<Buffer>;
     sendMessage(entity: any, message: any, options?: any): Promise<any>;
-    // Add more methods as needed
+    getMessages(entity: any, options?: any): Promise<any[]>;
+    getMe(): Promise<any>;
+    setLogLevel(level: string): void;
+    invoke(info: any): Promise<any>;
   }
 
   export class Api {
@@ -24,6 +27,21 @@ declare module 'telegram' {
     static Audio: any;
     static Voice: any;
     static Sticker: any;
-    // Add other classes as needed
+    static InputDocumentFileLocation: any;
+    static InputPhotoFileLocation: any;
+    static UpdateDeleteMessages: any;
+    static UpdateDeleteChannelMessages: any;
+    static PingDelayDisconnect: any;
+    static InputPeerChannel: any;
+    static InputPeerChat: any;
+    static InputPeerUser: any;
+    static stories: any;
+    static channels: any;
   }
+}
+
+// Extend Error interface to include .code and .cancelled (used across the codebase)
+interface Error {
+  code?: string;
+  cancelled?: boolean;
 }

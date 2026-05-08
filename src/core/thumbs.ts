@@ -539,7 +539,7 @@ export async function purgeAllThumbs() {
  * @param {AbortSignal} [opts.signal]
  * @returns {Promise<{ scanned:number, built:number, skipped:number, errored:number }>}
  */
-export async function buildAllThumbnails(opts = {}) {
+export async function buildAllThumbnails(opts: { onProgress?: any; signal?: any } = {}) {
     const { onProgress, signal } = opts;
     const rows = getDb().prepare(`
         SELECT id FROM downloads

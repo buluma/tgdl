@@ -238,7 +238,7 @@ export async function checkModelsDir(cacheDirCfg) {
  * diagnostic data — including the platform/node version so a bug report
  * has all the context. `ok` is the conjunction over non-optional checks.
  */
-export async function summary({ getDb, cacheDir } = {}) {
+export async function summary({ getDb, cacheDir }: { getDb?: any; cacheDir?: string } = {}) {
     const [sharp, transformers, sqliteVec, modelsDir] = await Promise.all([
         checkSharp(),
         checkTransformers(),

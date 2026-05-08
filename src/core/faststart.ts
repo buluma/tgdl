@@ -257,7 +257,7 @@ export function optimizeDownloadInBackground(id) {
  * Emits `onProgress({stage,processed,total,optimized,already,skipped,errored})`
  * approximately every 5 rows so the WS bar stays smooth.
  */
-export async function optimizeAll(opts = {}) {
+export async function optimizeAll(opts: { onProgress?: any; signal?: any } = {}) {
     const { onProgress, signal } = opts;
     const rows = getDb().prepare(`
         SELECT id FROM downloads

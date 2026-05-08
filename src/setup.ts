@@ -27,7 +27,7 @@ async function setup() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
     // 2. Load Config Template
-    let config = {};
+    let config: any = {};
     if (fs.existsSync(CONFIG_FILE)) {
         console.log('\x1b[33m%s\x1b[0m', '⚠️  Existing config found.');
         const ans = await question('   Overwrite? (y/N): ');

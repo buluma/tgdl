@@ -146,7 +146,7 @@ function persist() {
     }
 }
 
-export function issueSession(opts = {}) {
+export function issueSession(opts: { ttlMs?: number; role?: string } = {}) {
     ensureLoaded();
     const token = crypto.randomBytes(TOKEN_BYTES).toString('hex');
     const now = Date.now();
