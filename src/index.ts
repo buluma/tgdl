@@ -4,7 +4,7 @@
  */
 
 import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions/index.ts';
+import { StringSession } from 'telegram/sessions/index.js';
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';

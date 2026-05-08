@@ -4,7 +4,7 @@
  * Handles commands via Telegram chat to control the downloader.
  */
 
-import { NewMessage } from 'telegram/events/index.ts';
+import { NewMessage } from 'telegram/events/index.js';
 
 export class BotControl {
     constructor(client, downloader, config) {

@@ -4,7 +4,7 @@
  */
 
 import { TelegramClient, Api } from 'telegram';
-import { StringSession } from 'telegram/sessions/index.ts';
+import { StringSession } from 'telegram/sessions/index.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

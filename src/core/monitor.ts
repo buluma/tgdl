@@ -3,7 +3,7 @@
  * v1.1 Refined Code
  */
 
-import { NewMessage, Raw } from 'telegram/events/index.ts';
+import { NewMessage, Raw } from 'telegram/events/index.js';
 import { Api } from 'telegram';
 import { EventEmitter } from 'events';
 import { colorize } from '../cli/colors.ts';

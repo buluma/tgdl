@@ -16,7 +16,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions/index.ts';
+import { StringSession } from 'telegram/sessions/index.js';
 import crypto from 'crypto';
 
 import { getOrGenerateSecret } from '../core/secret.ts';

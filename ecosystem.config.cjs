@@ -2,12 +2,10 @@ module.exports = {
     apps: [
         {
             name: 'tgdl',
-            script: 'scripts/run-node.js',
-            args: 'src/index.js',
-            interpreter: 'node',
+            script: 'src/index.ts',
+            interpreter: './node_modules/.bin/tsx',
 
-            // Restart policy — mirrors runner.js behaviour but delegates
-            // crash counting to PM2 so we don't need the watchdog wrapper.
+            // Restart policy
             max_restarts: 10,
             min_uptime: '10s',
             restart_delay: 2000,
@@ -18,13 +16,10 @@ module.exports = {
             merge_logs: true,
             log_date_format: 'YYYY-MM-DD HH:mm:ss',
 
-            // ESM — no transpilation needed, node handles it natively.
-            node_args: [],
-
-            // Expose PORT if you want a non-default dashboard port.
+            // Expose PORT via environment
             env: {
                 NODE_ENV: 'production',
-                PORT: 3000,
+                PORT: 3011,
             },
 
             // Example: override PORT for a staging instance.
