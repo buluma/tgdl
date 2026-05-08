@@ -3,7 +3,7 @@
 # Defaults to the prebuilt multi-arch image from GitHub Container Registry.
 # `pull_policy: always` ensures `docker compose up -d` grabs the newest
 # release each time — without this, an older locally-cached image wins and
-# manifests as `Cannot find module '/app/src/web/server.js'` after upgrades.
+# manifests as `Cannot find module '/app/dist/web/server.js'` after upgrades.
 #
 # To build from source instead (for local dev), comment out `image:` +
 # `pull_policy:` and uncomment `build:`.
@@ -107,4 +107,4 @@ services:
 #     -e TGDL_RUN=monitor telegram-downloader node runner.js
 #
 # Interactive CLI:
-#   docker compose run --rm telegram-downloader node src/index.js
+#   docker compose run --rm telegram-downloader node dist/index.js

@@ -39,12 +39,12 @@ ENV NODE_ENV=production \
 #           the binary at /usr/bin/tini.
 # gosu    — drop from root → node after the entrypoint fixes /app/data perms
 #           (su-exec equivalent on Debian; same `gosu user "$@"` syntax).
-# ffmpeg  — used by src/core/thumbs.js for video first-frame thumbnails
+# ffmpeg  — used by src/core/thumbs.ts for video first-frame thumbnails
 #           and audio cover-art extraction. ~30 MB — tiny next to libvips
 #           and node_modules.
 # intel-media-va-driver / i965-va-driver — VA-API userland drivers needed
 #           for `-hwaccel vaapi` (Intel iGPU + AMD via the same libva ABI).
-#           Without these the ffmpeg path in thumbs.js falls back to CPU
+#           Without these the ffmpeg path in thumbs.ts falls back to CPU
 #           decode even when the host exposes /dev/dri. iHD is Gen8+ and
 #           the Quick Sync runtime; i965 covers Gen4-Gen7 hardware.
 # vainfo  — `vainfo` from libva-utils. Not used by the app itself, but
@@ -72,7 +72,7 @@ COPY runner.js config.example.json package.json LICENSE README.md SECURITY.md ./
 # Persistent state (sessions, config, downloads) — mount this as a volume.
 # `chmod a+rX` guarantees files end up readable + dirs traversable even when
 # BuildKit lays down mode 0 (seen on Windows hosts and some gha-cache hits),
-# which previously surfaced as `Cannot find module '/app/src/web/server.js'`.
+# which previously surfaced as `Cannot find module '/app/dist/web/server.js'`.
 RUN mkdir -p /app/data /app/data/downloads /app/data/logs /app/data/sessions \
     && chmod -R a+rX /app \
     && chmod +x /app/scripts/docker-entrypoint.sh \

@@ -11,7 +11,7 @@ echo ========================================================
 echo.
 
 :: Run the downloader
-node src/index.js history
+node dist/index.js history
 
 :: Check exit code
 if %ERRORLEVEL% NEQ 0 (

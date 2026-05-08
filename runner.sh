@@ -18,10 +18,10 @@ while true; do
     start=$(date +%s)
     if [ -n "$COMMAND" ]; then
         printf '\n\033[32m🚀 Launching (attempt #%d, command: %s)\033[0m\n' "$((count+1))" "$COMMAND"
-        node scripts/run-node.js src/index.js $COMMAND
+        node dist/index.js $COMMAND
     else
         printf '\n\033[32m🚀 Launching (attempt #%d, command: <dashboard>)\033[0m\n' "$((count+1))"
-        node scripts/run-node.js src/index.js
+        node dist/index.js
     fi
     code=$?
     elapsed=$(( $(date +%s) - start ))

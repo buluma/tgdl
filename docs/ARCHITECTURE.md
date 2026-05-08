@@ -2,8 +2,8 @@
 
 Two top-level entry points share state through `data/`:
 
-1. **CLI** (`src/index.js`) — interactive menus, ad-hoc commands.
-2. **Web server** (`src/web/server.js`) — Express + WebSocket on `:3000`, serves the SPA from `src/web/public/`.
+1. **CLI** (`src/index.ts`) — interactive menus, ad-hoc commands.
+2. **Web server** (`src/web/server.ts`) — Express + WebSocket on `:3000`, serves the SPA from `src/web/public/`.
 
 Both load the same `data/config.json` and `data/db.sqlite` (WAL mode → safe shared reads, single writer).
 
@@ -12,12 +12,12 @@ Both load the same `data/config.json` and `data/db.sqlite` (WAL mode → safe sh
 ```mermaid
 flowchart LR
     user[Browser SPA<br/>src/web/public/]
-    server[web/server.js]
-    runtime[core/runtime.js]
-    monitor[core/monitor.js]
-    downloader[core/downloader.js]
-    forwarder[core/forwarder.js]
-    am[core/accounts.js<br/>AccountManager]
+    server[web/server.ts]
+    runtime[core/runtime.ts]
+    monitor[core/monitor.ts]
+    downloader[core/downloader.ts]
+    forwarder[core/forwarder.ts]
+    am[core/accounts.ts<br/>AccountManager]
     db[(SQLite<br/>data/db.sqlite)]
     fs[(data/downloads/)]
     tg[(Telegram MTProto<br/>via gramJS)]
@@ -61,7 +61,7 @@ data/
 
 ## Multi-account routing
 
-`AccountManager` (`src/core/accounts.js`) holds `Map<accountId, TelegramClient>`. Each `.enc` session file under `data/sessions/` becomes one connected client.
+`AccountManager` (`src/core/accounts.ts`) holds `Map<accountId, TelegramClient>`. Each `.enc` session file under `data/sessions/` becomes one connected client.
 
 When `RealtimeMonitor.start()` runs, it walks every enabled group and asks each loaded client whether it can read it (`getMessages(groupId, {limit:1})`); the first one that succeeds is cached in `groupClientCache`. A group can pin an explicit account via `group.monitorAccount` — that wins.
 
@@ -103,7 +103,7 @@ Workers always drain `_high` first, then `queue`, then rehydrate from disk. Real
 
 gramJS surfaces a steady stream of recoverable internals during reconnects (`TIMEOUT`, `Not connected`, `Connection closed`, `Reconnect`, `CHANNEL_INVALID`). The previous codebase silently dropped these via a global `console.error` filter that also swallowed real errors with the same words.
 
-`src/core/logger.js` now classifies: noise still gets logged to `data/logs/network.log` but is only echoed to stderr when `TGDL_DEBUG=1` (or `DEBUG`). Real errors go through unchanged.
+`src/core/logger.ts` now classifies: noise still gets logged to `data/logs/network.log` but is only echoed to stderr when `TGDL_DEBUG=1` (or `DEBUG`). Real errors go through unchanged.
 
 ## SPA modules
 
@@ -138,27 +138,27 @@ The SPA is vanilla ES Modules served over HTTP — no bundler, no build step. As
 
 ```
 src/core/
-├── accounts.js       # AccountManager — multi-account routing
-├── monitor.js        # RealtimeMonitor — gramJS event handler + polling fallback
-├── downloader.js     # DownloadManager — queue + workers + atomic writes
-├── history.js        # HistoryDownloader — backfill with smart-resume modes
-├── forwarder.js      # AutoForwarder — post-download forward to destination
-├── checksum.js       # Canonical SHA-256 helper (used by downloader + dedup)
-├── dedup.js          # On-demand library-wide duplicate scan
-├── thumbs.js         # WebP thumbnail generator (sharp + ffmpeg fallback)
-├── nsfw.js           # NSFW classifier (WASM, AdamCodd/vit-base-nsfw-detector)
-├── share.js          # HMAC-SHA256 share-link sign/verify + secret bootstrap
-├── updater.js        # Watchtower client + pre-update DB snapshot
-├── web-auth.js       # scrypt password hashing + role-aware sessions
-├── db.js             # SQLite schema + migrations + helpers
-├── runtime.js        # Engine lifecycle (monitor + downloader + forwarder)
-├── disk-rotator.js   # Auto-prune oldest downloads when over quota
-├── integrity.js      # Hourly file-existence sweep
-├── rescue.js         # Rescue-mode sweeper (TTL-based prune)
-├── stories.js        # Stories list + download adapters
-├── url-resolver.js   # t.me / tg:// URL parsing
-├── security.js       # RateLimiter + SecureSession (AES-256-GCM)
-├── secret.js         # data/secret.key bootstrap
-├── metrics.js        # OpenMetrics text format for Prometheus
-└── logger.js         # noise classifier + WAL'd network log
+├── accounts.ts       # AccountManager — multi-account routing
+├── monitor.ts        # RealtimeMonitor — gramJS event handler + polling fallback
+├── downloader.ts     # DownloadManager — queue + workers + atomic writes
+├── history.ts        # HistoryDownloader — backfill with smart-resume modes
+├── forwarder.ts      # AutoForwarder — post-download forward to destination
+├── checksum.ts       # Canonical SHA-256 helper (used by downloader + dedup)
+├── dedup.ts          # On-demand library-wide duplicate scan
+├── thumbs.ts         # WebP thumbnail generator (sharp + ffmpeg fallback)
+├── nsfw.ts           # NSFW classifier (WASM, AdamCodd/vit-base-nsfw-detector)
+├── share.ts          # HMAC-SHA256 share-link sign/verify + secret bootstrap
+├── updater.ts        # Watchtower client + pre-update DB snapshot
+├── web-auth.ts       # scrypt password hashing + role-aware sessions
+├── db.ts             # SQLite schema + migrations + helpers
+├── runtime.ts        # Engine lifecycle (monitor + downloader + forwarder)
+├── disk-rotator.ts   # Auto-prune oldest downloads when over quota
+├── integrity.ts      # Hourly file-existence sweep
+├── rescue.ts         # Rescue-mode sweeper (TTL-based prune)
+├── stories.ts        # Stories list + download adapters
+├── url-resolver.ts   # t.me / tg:// URL parsing
+├── security.ts       # RateLimiter + SecureSession (AES-256-GCM)
+├── secret.ts         # data/secret.key bootstrap
+├── metrics.ts        # OpenMetrics text format for Prometheus
+└── logger.ts         # noise classifier + WAL'd network log
 ```

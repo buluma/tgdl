@@ -9,7 +9,7 @@
     - Prevents infinite boot loops (Exponential Backoff)
 #>
 
-$Program = "src/index.js"
+$Program = "dist/index.js"
 # Subcommand to run under the watchdog. Default empty => dashboard/web mode.
 # Override via
 # env: `$env:TGDL_RUN = "history"; .\watchdog.ps1`
