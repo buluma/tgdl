@@ -1,0 +1,56 @@
+# Overview
+
+- Realtime monitor across an unlimited number of channels, groups, supergroups, and forum topics.
+- **Monitor auto-starts** when at least one account is logged in — no manual "Start" click needed after a restart.
+- **Smart-resume backfill** — `iterMessages` skips already-stored ranges via `maxId/minId` instead of walking the whole timeline. Resuming a partial backfill is roughly an order of magnitude faster than re-walking + per-message dedup.
+- **Auto-backfill on first add** — enabling a brand-new group with zero stored rows triggers a background pull of the most recent N messages (default 100, configurable, 0 = disabled).
+- **Auto catch-up after restart** — monitor's boot-time inspection spawns a `catch-up` backfill when the gap between the last stored row and Telegram's current top exceeds the threshold.
+- **Per-group lock** — only one backfill per group at a time; a duplicate request returns 409 with `code: 'ALREADY_RUNNING'`.
+- **Backfill modes** surfaced over WS for the UI: `pull-older` / `catch-up` / `rescan`.
+- **Multi-account routing** — add unlimited Telegram accounts. The engine probes which account can read each chat and pins it automatically; per-group overrides are supported.
+- **Smart dual-lane queue** — realtime jobs (priority 1) never starve behind history backfill; TTL / self-destructing media (priority 0) is unshifted to the front.
+- **Auto-scaling workers** — 1 to 20 parallel downloads, scales with the queue depth, throttles down on FloodWait.
+- **FloodWait-aware** — pauses the right amount of time Telegram tells us to, never more. Per-job FloodWait retry capped (`MAX_FLOOD_RETRIES`) so a stuck job can't loop forever.
+- **Keep-alive pings** — periodic `PingDelayDisconnect` keeps gramJS senders warm so `network.log` stays quiet.
+- **Atomic downloads** — temp-file then rename, no half-written files on crash, **post-write `fs.stat` verify** to catch corrupt or truncated files immediately.
+- **Download-time deduplication** — every newly-written file is SHA-256'd; a hash+size match against an existing row swaps the new copy out for a pointer to the existing on-disk file. Zero duplicate bytes ever land on disk.
+- **Self-healing integrity sweep** — boot + hourly scan that re-queues missing files and prunes orphan DB rows (configurable batch size, opt-out).
+- **Auto-rotate disk cap** — when `maxTotalSize` is exceeded, oldest downloads are pruned automatically (toggleable). The rotator skips files the downloader has actively open.
+- **Rescue Mode** — keep only files that have been deleted from the source chat (configurable per-chat or globally).
+- **Persistent dedup** — `(group_id, message_id)` unique constraint, indexed `(file_name, file_size)` second-pass dedup, and the SHA-256 layer above.
+- **Disk-spillover queue** — over 2000 pending history jobs spill to disk so RAM stays bounded.
+- **Auto-forward** — forward each download to a configured destination (channel, group, Saved Messages) with optional delete-after-forward.
+- **Encrypted sessions** — AES-256-GCM with per-blob random scrypt salt; sessions live in `data/sessions/<id>.enc`.
+- **Account add / remove from the web** — phone → OTP → 2FA wizard, no CLI required.
+- **Self-hosted on `:3000`** with a Telegram-themed responsive SPA (vanilla ES Modules, no bundler, no build step).
+- **Installable PWA** — manifest + service worker; install to home-screen / desktop, offline shell.
+- **Light / dark / auto theme** with `prefers-color-scheme` detection, persistence, and a fully-tuned light palette.
+- **Full bilingual UI (en / th)** — `data-i18n` everywhere, lockstep translation files (800+ keys), runtime language switcher.
+- **Asset cache-busting** — every JS module URL carries `?v=<APP_VERSION>` so a fresh deploy is picked up immediately, while unchanged versions stay cached as `immutable`.
+- **Two roles** — `admin` (full access) and opt-in `guest` (read-only viewer; sees gallery + own video-player preferences, blocked from delete / config / accounts via a default-deny `/api` chokepoint).
+- **Live engine card** — start, stop, queue depth, active workers, uptime; updates over WebSocket. The per-row "live downloads" list moved to the dedicated Queue page.
+- **Sticky status bar** — monitor state, queue, active, total files, disk usage, WebSocket health, plus a live **version chip** and an **"Update available" pill** that polls GitHub Releases and (when the watchtower sidecar is enabled) installs the new container with one click.
+- **Queue page (IDM-style)** — append-on-scroll table with per-row pause / resume / cancel / retry, in-place WS progress patches (no full re-render), filter chips, free-text search, and a global throttle slider.
+- **Backfill tab** — pick a chat, choose preset (100 / 1k / 10k / dump-all) or custom range, per-row delete + Clear-all on the Recent backfills list.
+- **Server-side WebP thumbnails** — `sharp` for images, `ffmpeg` for video first-frame, audio cover-art when present. Cached at `data/thumbs/`, served via `/api/thumbs/:id?w=…`. Pre-generated automatically on every download and on a Maintenance "build for older files" sweep.
+- **Maintenance panel** — CLI parity from the browser: integrity sweep, rescue sweep, disk rotate, prune orphans, **find duplicate files** (review sheet with thumbnails + per-set Keep-oldest/newest), **build / rebuild thumbnails**, **scan images for NSFW (18+)** (review sheet for not-18+ candidates with delete + Mark-as-18+ whitelist), **active share links** (search + revoke), **install update**, view raw runtime config, download log file, sign out everywhere.
+- **Shareable media links** — admin mints HMAC-SHA256 signed URLs (`/share/<id>?exp=&sig=`) that friends can stream or download without logging in; per-link revocation, access counters, optional label, TTL options including "never expires".
+- **Auto-update via watchtower sidecar** (opt-in) — dashboard never touches `/var/run/docker.sock`. The DB is snapshotted to `data/backups/` before the swap; the SPA reconnects to the new container automatically once its healthcheck passes.
+- **YouTube/Netflix/Telegram-grade video player** — buffered indicator, click + drag scrub, hover preview, scroll-wheel volume, persisted volume / speed, race-safe resume, full keyboard shortcuts (Space / K / M / F / 0–9 / &lt; &gt;), double-tap mobile seek.
+- **Themed sheets replace native dialogs** — `confirmSheet` / `promptSheet` everywhere; no more browser `alert()` / `confirm()` / `prompt()`.
+- **Media gallery** — append-on-scroll (page-2+ adds tiles in place — no full re-render), lazy loading, server-side WebP thumbnails, type filters (Photos / Videos / Files / Audio), three view modes (Grid / Compact / List with full file metadata columns) selected from a dropdown picker. Mobile uses a smaller page size + poster-only video tiles for smooth scroll on iOS Safari.
+- **Picker / select-mode covers every platform** —
+    - Desktop: drag-to-select lasso · Ctrl/Cmd + click toggle · Shift + click range · Ctrl/Cmd + A select-all · Esc exit · Delete/Backspace bulk-delete.
+    - Touch: long-press to enter select-mode + toggle (with haptic feedback when supported) · drag-after-long-press to continue selecting (Material pattern) · two-finger drag = lasso (iOS Photos pattern). Pinch-to-zoom cancels the long-press cleanly.
+    - All in-place; no grid re-render per click.
+- **Search across all downloads** — server-side `LIKE` search over filename + group name with debounced input + AbortController for race-free fast typing.
+- **Paste t.me link** — drop one or many URLs (newline-separated) to download just those messages.
+- **Stories drawer** — fetch a username's active Stories, pick which ones to save.
+- **Group settings modal** — per-chat media filters (photos, videos, files, voice, gifs, stickers, links), auto-forward destination, monitor / forward account assignment, forum-topic whitelist, per-row cog.
+- **Settings → Advanced** — system-wide runtime tunables (worker auto-scale, integrity batch size, polling interval, history retention, share TTL bounds, auto-backfill knobs, etc.). All clamped server-side; defaults preserve current behaviour. Per-tool settings (NSFW classifier, ffmpeg decoder, AI capabilities) live on their respective `/maintenance/*` page.
+- **Font picker** — 21 fonts (10 Thai-capable + 10 Latin + system); applied at boot before first paint to avoid FOUC.
+- **Privacy / Force-HTTPS / Rate-limit toggles** — opt-in from the browser, no `.env` editing.
+- **Browser notifications** — opt-in toast for download-complete events, with burst coalescing.
+- **Dialogs picker covers archived chats and DMs** (DMs gated by an explicit privacy switch).
+- **Set / change dashboard password from the browser** — first-run setup wizard, no CLI required.
+- **Sign out everywhere** — revoke all active dashboard sessions.
