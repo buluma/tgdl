@@ -72,9 +72,9 @@ jobs:
           # File modes + readability (the chmod -R a+rX guard)
           docker run --rm --entrypoint=sh "$IMAGE" -c '
             set -e
-            ls -ld /app/src /app/src/web /app/src/web/server.js /app/scripts/healthcheck.js
-            [ -r /app/src/web/server.js ] || { echo "FAIL: server.js not readable by node user"; exit 1; }
-            [ -x /app/src/web ]           || { echo "FAIL: /app/src/web not traversable"; exit 1; }
+            ls -ld /app/dist /app/dist/web /app/dist/web/server.js /app/scripts/healthcheck.js
+            [ -r /app/dist/web/server.js ] || { echo "FAIL: server.js not readable by node user"; exit 1; }
+            [ -x /app/dist/web ]           || { echo "FAIL: /app/dist/web not traversable"; exit 1; }
             [ -r /app/scripts/healthcheck.js ] || { echo "FAIL: healthcheck.js not readable"; exit 1; }
             echo "OK: file permissions sane"
           '
