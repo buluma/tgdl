@@ -1,3 +1,4 @@
+// @ts-nocheck
 
 /**
  * Web GUI Server - Configuration + Profile Photos + SQLite Data

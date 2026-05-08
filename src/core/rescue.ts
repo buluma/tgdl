@@ -54,12 +54,13 @@ async function tryUnlink(row) {
 }
 
 export class RescueSweeper {
-    /**
-     * @param {object} opts
-     * @param {() => object} opts.loadConfig fresh config getter (called per tick)
-     * @param {(msg: object) => void} [opts.broadcast] WS broadcast (rescue_swept)
-     */
-    constructor({ loadConfig, broadcast } = {}) {
+    _intervalMs: number;
+    _sweeping: boolean;
+    _timer: any;
+    _broadcast: (msg: any) => void;
+    _loadConfig: () => any;
+
+    constructor({ loadConfig, broadcast }: any = {}) {
         if (typeof loadConfig !== 'function') {
             throw new Error('RescueSweeper requires loadConfig');
         }

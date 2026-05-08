@@ -24,7 +24,12 @@ function getTs() {
 }
 
 export class AutoForwarder {
-    constructor(client, config, accountManager = null) {
+    client: any;
+    config: any;
+    accountManager: any;
+    storageChannelId: any;
+
+    constructor(client: any, config: any, accountManager: any = null) {
         this.client = client;
         this.config = config;
         this.accountManager = accountManager;

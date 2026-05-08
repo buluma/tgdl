@@ -5,7 +5,13 @@ import { EventEmitter } from 'events';
  * Rate Limiter - ป้องกัน Account Ban
  */
 export class RateLimiter extends EventEmitter {
-    constructor(config = {}) {
+    maxPerMinute: number;
+    delayMin: number;
+    delayMax: number;
+    requests: number[];
+    paused: boolean;
+
+    constructor(config: any = {}) {
         super();
         this.maxPerMinute = config.requestsPerMinute || 15;
         this.delayMin = config.delayMs?.min || 500;
@@ -65,10 +71,11 @@ const LEGACY_SALT = Buffer.from('tg-dl-salt-v1');
 const KEY_LEN = 32; // AES-256
 
 export class SecureSession {
-    constructor(password) {
+    password: string;
+    _keyCache: Map<string, Buffer>;
+
+    constructor(password: string) {
         this.password = String(password);
-        // Cache derived keys so we don't pay scrypt cost on every encrypt.
-        // Keyed by salt-hex; bounded to a few entries.
         this._keyCache = new Map();
     }
 

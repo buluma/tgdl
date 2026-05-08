@@ -7,7 +7,12 @@
 import { NewMessage } from 'telegram/events/index.js';
 
 export class BotControl {
-    constructor(client, downloader, config) {
+    client: any;
+    downloader: any;
+    config: any;
+    startTime: number;
+
+    constructor(client: any, downloader: any, config: any) {
         this.client = client;
         this.downloader = downloader;
         this.config = config;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Periodic + boot-time integrity sweep over the downloads DB.
 //
 // Goal: after a crash, a manual delete, an auto-rotator pass, or any

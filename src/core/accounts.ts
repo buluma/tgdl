@@ -56,15 +56,19 @@ function createLogger(label) {
 }
 
 export class AccountManager {
-    /**
-     * @param {object} config - Full app config (must have telegram.apiId, telegram.apiHash)
-     */
-    constructor(config) {
+    config: any;
+    secure: any;
+    clients: Map<string, any>;
+    metadata: Map<string, any>;
+    _authFlows: Map<string, any>;
+    _keepAliveTimer: any;
+
+    constructor(config: any) {
         this.config = config;
         this.secure = new SecureSession(SESSION_PASSWORD);
-        this.clients = new Map();   // accountId -> TelegramClient
-        this.metadata = new Map();  // accountId -> { id, name, phone, userId }
-        this._authFlows = new Map(); // sessionId -> PhoneAuthFlow (for web wizard)
+        this.clients = new Map();
+        this.metadata = new Map();
+        this._authFlows = new Map();
     }
 
     /**

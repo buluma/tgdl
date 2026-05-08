@@ -31,6 +31,8 @@ export class LocalProvider extends BackupProvider {
         ];
     }
 
+    private root: any;
+
     constructor() {
         super();
         this.root = null;

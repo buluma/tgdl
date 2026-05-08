@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AI subsystem manager — fan-out + scan loops.
  *

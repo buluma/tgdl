@@ -41,6 +41,10 @@ export class RealtimeMonitor extends EventEmitter {
     urlFlushInterval: any;
     pollTimeout: any;
     deleteHandler: any;
+    _origConsoleError: any;
+    _unknownGroups: Set<string>;
+    _configWatcher: any;
+    _configWatchDebounceClear: any;
 
     constructor(client, downloader, config, configPath = null, accountManager = null) {
         super();

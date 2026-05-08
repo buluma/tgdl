@@ -80,12 +80,14 @@ async function tryUnlink(row) {
 }
 
 export class DiskRotator {
-    /**
-     * @param {object} opts
-     * @param {() => object} opts.loadConfig  reads current config (called per sweep)
-     * @param {(msg: object) => void} [opts.broadcast]  WS broadcast (file_deleted events)
-     */
-    constructor({ loadConfig, broadcast, getActiveFilePaths } = {}) {
+    _intervalMs: number;
+    _sweeping: boolean;
+    _timer: any;
+    _broadcast: (msg: any) => void;
+    _loadConfig: () => any;
+    _getActiveFilePaths: () => Set<string>;
+
+    constructor({ loadConfig, broadcast, getActiveFilePaths }: any = {}) {
         if (typeof loadConfig !== 'function') {
             throw new Error('DiskRotator requires loadConfig');
         }

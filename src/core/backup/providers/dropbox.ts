@@ -47,6 +47,11 @@ export class DropboxProvider extends BackupProvider {
         ];
     }
 
+    private _Dropbox: any;
+    private _dbx: any;
+    private _cfg: any;
+    private _remoteRoot: string;
+
     constructor() {
         super();
         this._Dropbox = null;

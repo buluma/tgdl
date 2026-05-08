@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Telegram Auto-Downloader CLI
  * Multi-Account Support

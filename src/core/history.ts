@@ -11,7 +11,15 @@ import { getMessageIdRange } from './db.js';
 import { BACKPRESSURE_CAP_DEFAULT, BACKPRESSURE_MAX_WAIT_MS_DEFAULT } from './constants.js';
 
 export class HistoryDownloader extends EventEmitter {
-    constructor(client, downloader, config, accountManager = null) {
+    client: any;
+    downloader: any;
+    config: any;
+    accountManager: any;
+    stats: { processed: number; downloaded: number; skipped: number; urls: number };
+    running: boolean;
+    cancelFlag: boolean;
+
+    constructor(client: any, downloader: any, config: any, accountManager: any = null) {
         super();
         this.client = client;
         this.downloader = downloader;

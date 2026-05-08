@@ -50,6 +50,10 @@ export class FtpProvider extends BackupProvider {
         ];
     }
 
+    private _ftp: any;
+    private _cfg: any;
+    private _root: string;
+
     constructor() {
         super();
         this._ftp = null;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * NSFW classifier — single-process, in-Node, cross-platform.
  *

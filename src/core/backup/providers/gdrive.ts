@@ -53,6 +53,13 @@ export class GoogleDriveProvider extends BackupProvider {
         ];
     }
 
+    private _google: any;
+    private _oauth2: any;
+    private _drive: any;
+    private _rootFolderId: any;
+    private _rootFolderName: string;
+    private _folderCache: Map<string, string>;
+
     constructor() {
         super();
         this._google = null;
@@ -60,7 +67,7 @@ export class GoogleDriveProvider extends BackupProvider {
         this._drive = null;
         this._rootFolderId = null;
         this._rootFolderName = 'tgdl-backup';
-        this._folderCache = new Map();        // POSIX path under root → folderId
+        this._folderCache = new Map();
     }
 
     async init(cfg, _ctx) {

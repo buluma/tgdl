@@ -28,13 +28,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '../../data/config.json');
 
 class Runtime extends EventEmitter {
+    state: string;
+    error: any;
+    startedAt: number | null;
+    _accountManager: any;
+    _monitor: any;
+    _downloader: any;
+    _forwarder: any;
+    _rateLimiter: any;
+
     constructor() {
         super();
         this.state = 'stopped';
         this.error = null;
         this.startedAt = null;
 
-        this._accountManager = null; // injected at start time
+        this._accountManager = null;
         this._monitor = null;
         this._downloader = null;
         this._forwarder = null;

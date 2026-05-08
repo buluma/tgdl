@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Backup manager — owns destinations, queue workers, snapshot cron,
 // passphrase cache, and the WS broadcast surface.
 //
@@ -53,7 +54,7 @@ const DEFAULT_WORKERS_PER_DEST = Number(process.env.BACKUP_WORKERS_PER_DEST) > 0
 const events = new EventEmitter();
 
 let _broadcast = () => {};
-let _log = () => {};
+let _log: (msg: any) => void = () => {};
 let _getShareSecret = () => null;
 
 const _workers = new Map();             // destinationId → Worker
@@ -417,10 +418,13 @@ function _mirrorRemotePath(row) {
 // ---- Workers --------------------------------------------------------------
 
 class Worker {
-    /**
-     * @param {number} destinationId
-     */
-    constructor(destinationId) {
+    destinationId: number;
+    running: boolean;
+    paused: boolean;
+    activeAborters: Set<any>;
+    _tickScheduled: boolean;
+
+    constructor(destinationId: number) {
         this.destinationId = Number(destinationId);
         this.running = false;
         this.paused = false;

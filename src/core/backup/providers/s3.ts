@@ -89,6 +89,10 @@ export class S3Provider extends BackupProvider {
         ];
     }
 
+    private client: any;
+    private bucket: any;
+    private prefix: string;
+
     constructor() {
         super();
         this.client = null;

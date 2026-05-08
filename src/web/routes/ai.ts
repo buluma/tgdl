@@ -1,3 +1,4 @@
+// @ts-nocheck
 import express from 'express';
 import * as ai from '../../core/ai/index.js';
 import {

@@ -37,6 +37,10 @@ export class SftpProvider extends BackupProvider {
         ];
     }
 
+    private client: any;
+    private cfg: any;
+    private root: any;
+
     constructor() {
         super();
         this.client = null;

@@ -6,9 +6,15 @@
 import { colorize } from '../cli/colors.js';
 
 export class ConnectionManager {
-    constructor(client, options = {}) {
+    client: any;
+    interval: number;
+    running: boolean;
+    timer: any;
+    failures: number;
+
+    constructor(client: any, options: any = {}) {
         this.client = client;
-        this.interval = options.interval || 60000; // Check every 60s
+        this.interval = options.interval || 60000;
         this.running = false;
         this.timer = null;
         this.failures = 0;

@@ -65,10 +65,15 @@ function utf8Buf(s) { return Buffer.from(String(s), 'utf8'); }
  * single-stream by construction (parallelism would interleave bytes).
  */
 export class ZipStream {
+    _sink: any;
+    _offset: number;
+    _central: any[];
+    _finalized: boolean;
+
     constructor() {
-        this._sink = null;        // Writable to pipe into
-        this._offset = 0;         // bytes emitted so far
-        this._central = [];       // central-directory records
+        this._sink = null;
+        this._offset = 0;
+        this._central = [];
         this._finalized = false;
     }
 
