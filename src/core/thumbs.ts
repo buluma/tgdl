@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Server-side thumbnail generator.
  *
@@ -136,7 +135,7 @@ function makeSemaphore(max) {
     const queue = [];
     return {
         acquire() {
-            return new Promise((resolve) => {
+            return new Promise<void>((resolve) => {
                 if (active < max) { active++; resolve(); return; }
                 queue.push(resolve);
             });
@@ -231,7 +230,7 @@ async function _generateImageThumb(srcAbs, width, dstAbs) {
 }
 
 function _runFfmpeg(args) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         const p = spawn(_resolveFfmpegBin(), args, { windowsHide: true });
         const errChunks = [];
         p.stderr.on('data', (c) => errChunks.push(c));

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Download Manager - Multi-threaded downloads with deduplication
  */
@@ -146,7 +145,7 @@ export class DownloadManager extends EventEmitter {
     _paused: Set<string>;
     _globalPaused: boolean;
     _jobs: Map<string, any>;
-    _cancelling: boolean;
+    _cancelling: Set<string>;
     _diskUsageCache: { size: number; timestamp?: number };
     _saveTimeout: any;
     BACKLOG_PATH: string;
@@ -164,6 +163,7 @@ export class DownloadManager extends EventEmitter {
         this._high = [];
         this.queue = [];
         this.active = new Map(); // Key -> Promise/Status
+        this._cancelling = new Set();
         // Absolute paths of files currently being written (.part + final
         // candidates). The disk-rotator consults this Set before unlinking
         // anything to avoid yanking a file out from under an active write.
@@ -406,7 +406,6 @@ export class DownloadManager extends EventEmitter {
         // Active path: flag the key so the next progressCallback throws.
         const wasActive = this.active.has(key);
         if (wasActive) {
-            if (!this._cancelling) this._cancelling = new Set();
             this._cancelling.add(key);
         }
 

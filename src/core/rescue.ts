@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Rescue Mode sweeper.
  *
@@ -19,6 +18,7 @@ import fs from 'fs/promises';
 const ts = () => {
     const d = new Date();
     const opt = { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    // @ts-expect-error overload mismatch
     return new Intl.DateTimeFormat('en-KE', opt).format(d).replace(/,/, '');
 };
 import { fileURLToPath } from 'url';

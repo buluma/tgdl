@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import * as backup from '../../core/backup/index.js';
 

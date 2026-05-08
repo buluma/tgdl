@@ -786,7 +786,7 @@ async function _writeTarGz(srcDir, archivePath) {
     const gz = zlib.createGzip({ level: 9 });
     const out = fs.createWriteStream(archivePath);
     const piped = gz.pipe(out);
-    const finished = new Promise((res, rej) => {
+    const finished = new Promise<void>((res, rej) => {
         piped.once('finish', res);
         piped.once('error', rej);
         gz.once('error', rej);

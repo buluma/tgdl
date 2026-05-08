@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * MP4 faststart optimizer.
  *
@@ -60,7 +59,7 @@ function makeSemaphore(max) {
     const queue = [];
     return {
         acquire() {
-            return new Promise((resolve) => {
+            return new Promise<void>((resolve) => {
                 if (active < max) { active++; resolve(); return; }
                 queue.push(resolve);
             });
@@ -139,7 +138,7 @@ async function _isOptimized(absPath) {
 }
 
 function _runFfmpeg(args) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         const p = spawn(resolveFfmpegBin(), args, { windowsHide: true });
         const errChunks = [];
         p.stderr.on('data', (c) => errChunks.push(c));

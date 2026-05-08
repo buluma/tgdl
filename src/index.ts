@@ -67,7 +67,7 @@ function question(query) {
 }
 
 function checkPortAvailable(port) {
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
         const server = net.createServer();
         server.once('error', (err) => {
             const inUse = err && (err.code === 'EADDRINUSE' || err.code === 'EACCES');
@@ -83,8 +83,8 @@ function checkPortAvailable(port) {
 function checkFfmpeg() {
     const cmd = process.platform === 'win32' ? 'where' : 'which';
     const r = spawnSync(cmd, ['ffmpeg'], { encoding: 'utf8' });
-    if (r.status === 0 && r.stdout.trim()) {
-        return { ok: true, detail: r.stdout.trim().split(/\r?\n/)[0] };
+    if (r.status === 0 && r.stdout.toString().trim()) {
+        return { ok: true, detail: r.stdout.toString().trim().split(/\r?\n/)[0] };
     }
     return { ok: false, detail: 'not on PATH (video thumbs will use bundled @ffmpeg-installer fallback)' };
 }
@@ -283,11 +283,11 @@ async function main() {
 
         while (!config.telegram.apiId) {
             const input = await question(colorize('📦 API ID: ', 'cyan'));
-            config.telegram.apiId = input.trim();
+            config.telegram.apiId = input.toString().trim();
         }
         while (!config.telegram.apiHash) {
             const input = await question(colorize('🔑 API Hash: ', 'cyan'));
-            config.telegram.apiHash = input.trim();
+            config.telegram.apiHash = input.toString().trim();
         }
 
         saveConfig(config);
@@ -534,8 +534,8 @@ async function configureGlobalSettings(config) {
             if (val === 'custom') {
                 console.log();
                 const input = await question(colorize('Enter max size (e.g. 250GB, 2TB): ', 'cyan'));
-                if (!input.trim()) continue;
-                finalVal = input.trim();
+                if (!input.toString().trim()) continue;
+                finalVal = input.toString().trim();
             }
 
             if (!config.diskManagement) config.diskManagement = {};
@@ -599,7 +599,7 @@ async function configureGlobalSettings(config) {
             console.log();
             console.log(colorize('Current Path: ', 'yellow') + (config.download.path || './data/downloads'));
             const val = await question(colorize('Enter new path (or Enter to keep current): ', 'cyan'));
-            if (val.trim()) config.download.path = val.trim();
+            if (val.toString().trim()) config.download.path = val.toString().trim();
         }
         else if (choice === '5') {
             const val = await selectOption('SELECT RATE LIMIT (REQ/MIN)', [
@@ -1095,7 +1095,7 @@ async function startMonitor(accountManager, config) {
     await monitor.start();
 
     // Keep alive until Ctrl+C
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
         const shutdown = async () => {
             console.log();
             console.log(colorize('🛑 Stopping monitor...', 'yellow'));
@@ -1340,7 +1340,7 @@ async function startHistory(accountManager, config, connManager) {
     console.log('─'.repeat(40));
 
     const choiceStr = await question(colorize('Select option (1-4): ', 'yellow'));
-    const choice = choiceStr.trim();
+    const choice = choiceStr.toString().trim();
 
     let limit = 100;
     let offsetId = 0;
@@ -1643,7 +1643,7 @@ async function manageAccounts(accountManager, config) {
 
             if (removeChoice !== 'cancel') {
                 const confirm = await question(colorize(`\n⚠️  Permanently remove "${removeChoice}"? (y/N): `, 'yellow'));
-                if (confirm.trim().toLowerCase() === 'y') {
+                if (confirm.toString().trim().toLowerCase() === 'y') {
                     accountManager.removeAccount(removeChoice);
                     // Also clean up any group assignments referencing this account
                     for (const group of config.groups || []) {
@@ -1691,7 +1691,7 @@ async function purgeData(client, config) {
             // Purge ALL
             console.log();
             const confirm = await question(colorize('\n⚠️  Delete ALL data? Type YES to confirm: ', 'red', 'bold'));
-            if (confirm.trim() !== 'YES') {
+            if (confirm.toString().trim() !== 'YES') {
                 console.log(colorize('Cancelled.', 'dim'));
                 await new Promise(r => setTimeout(r, 1000));
                 continue;
@@ -1739,7 +1739,7 @@ async function purgeData(client, config) {
 
             console.log();
             const confirm = await question(colorize(`\n⚠️  Delete all data for "${groupName}"? (y/N): `, 'yellow'));
-            if (confirm.trim().toLowerCase() !== 'y') {
+            if (confirm.toString().trim().toLowerCase() !== 'y') {
                 console.log(colorize('Cancelled.', 'dim'));
                 await new Promise(r => setTimeout(r, 1000));
                 continue;
@@ -1842,9 +1842,9 @@ async function setupWebAuth(config) {
         console.log(colorize('🔑 Enter new password for the Web Dashboard', 'cyan'));
         console.log(colorize('   (Leave blank to cancel)', 'dim'));
         const pass = await question(colorize('\n> ', 'white', 'bold'));
-        if (pass.trim()) {
+        if (pass.toString().trim()) {
             // Store as a scrypt hash. The web server compares with timingSafeEqual.
-            config.web.passwordHash = hashPassword(pass.trim());
+            config.web.passwordHash = hashPassword(pass.toString().trim());
             delete config.web.password; // drop any legacy plaintext
             config.web.enabled = true;
             console.log(colorize('\n✅ Password updated successfully! Security is ENABLED.', 'green'));

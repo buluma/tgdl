@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Stories — small wrapper over GramJS's Api.stories.* surface.
  *
@@ -32,7 +31,7 @@ function pickMedia(story) {
     return null;
 }
 
-function serialiseStory(story, peerUsername) {
+function serialiseStory(story: any, peerUsername?: any) {
     const media = pickMedia(story);
     return {
         id: story.id,

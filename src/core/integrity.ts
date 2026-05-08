@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Periodic + boot-time integrity sweep over the downloads DB.
 //
 // Goal: after a crash, a manual delete, an auto-rotator pass, or any
@@ -21,6 +20,7 @@ import { fileURLToPath } from 'url';
 const ts = () => {
     const d = new Date();
     const opt = { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    // @ts-expect-error overload
     return new Intl.DateTimeFormat('en-KE', opt).format(d).replace(/,/, '');
 };
 import { getDb, insertDownload } from './db.js';
@@ -31,7 +31,7 @@ const DOWNLOADS_DIR = path.join(__dirname, '../../data/downloads');
 
 let _running = false;
 let _timer = null;
-let _broadcast = () => {};
+let _broadcast: (msg: any) => void = () => {};
 
 // Cached batch size, refreshed from config on each start() call.
 let _batchSize = 64;
@@ -45,7 +45,7 @@ let _batchSize = 64;
  * after every batch so the verify-files admin page can render a
  * determinate bar without polling.
  */
-export async function sweep(onProgress) {
+export async function sweep(onProgress?: any) {
     if (_running) return { scanned: 0, pruned: 0, skipped: true };
     _running = true;
     const result = { scanned: 0, pruned: 0, sizeFixed: 0 };
@@ -138,7 +138,7 @@ export async function sweep(onProgress) {
  * `batchSize` is also accepted to override stat() concurrency per pass
  * (keeps the consumer-reads-config pattern in server.js consistent).
  */
-export function start({ broadcast, intervalMin = 60, batchSize = 64 } = {}) {
+export function start({ broadcast, intervalMin = 60, batchSize = 64 }: any = {}) {
     if (broadcast) _broadcast = broadcast;
     if (Number.isFinite(batchSize) && batchSize > 0) _batchSize = Math.floor(batchSize);
     if (_timer) clearInterval(_timer);
@@ -244,7 +244,7 @@ let _reindexRunning = false;
 export async function reindexFromDisk(configGroups, onProgress) {
     if (_reindexRunning) return { running: true };
     _reindexRunning = true;
-    const result = { scanned: 0, added: 0, skipped: 0, errors: 0, groups: 0, startedAt: Date.now() };
+    const result: any = { scanned: 0, added: 0, skipped: 0, errors: 0, groups: 0, startedAt: Date.now() };
     try {
         let topEntries = [];
         try {

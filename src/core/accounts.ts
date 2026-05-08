@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Account Manager - Multi-Account Telegram Client Management
  * Supports dynamic account assignment per group for monitoring & forwarding
@@ -18,7 +17,7 @@ import { buildProxy } from './proxy.js';
 
 function deferred() {
     let resolve, reject;
-    const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+    const promise = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
     return { promise, resolve, reject };
 }
 
@@ -263,12 +262,12 @@ export class AccountManager {
         };
         try {
             const proxy = buildProxy(this.config);
-            if (proxy) opts.proxy = proxy;
+            if (proxy) (opts as any).proxy = proxy;
         } catch (e) {
             console.log(colorize(`⚠️  Proxy config invalid (${e.message}) — connecting direct`, 'yellow'));
         }
         return new TelegramClient(
-            new StringSession(sessionString),
+            new StringSession(sessionString) as any,
             parseInt(this.config.telegram.apiId),
             this.config.telegram.apiHash,
             opts,
@@ -530,11 +529,11 @@ export class AccountManager {
         }
 
         const sessionId = crypto.randomBytes(8).toString('hex');
-        const flow = {
+        const flow: any = {
             sessionId,
             requestedLabel: isTempId ? null : accountId,
             isTempId,
-            state: 'phone', // phone | code | password | done | error | cancelled
+            state: 'phone',
             error: null,
             accountId: null,
             phoneDeferred: deferred(),
@@ -622,7 +621,7 @@ export class AccountManager {
     /** Wait for the next state transition (or timeout). */
     _waitNextState(flow, timeoutMs = 30000) {
         const cur = flow.state;
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
             const t = setTimeout(() => {
                 flow.stateWaiters.delete(notify);
                 resolve(flow.state);

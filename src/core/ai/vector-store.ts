@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-ignore
 /**
  * Vector store helpers for semantic search.
  *
@@ -120,7 +120,7 @@ export function vectorToBlob(vec) {
  * 0 for the mismatched length and the row would still appear in the
  * scored list (sorted to the bottom but visible).
  */
-export function blobToVector(blob, expectedDim) {
+export function blobToVector(blob: any, expectedDim?: any) {
     if (!blob) return null;
     const buf = Buffer.isBuffer(blob) ? blob : Buffer.from(blob);
     const len = buf.byteLength >>> 2;

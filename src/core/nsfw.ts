@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * NSFW classifier — single-process, in-Node, cross-platform.
  *
@@ -80,7 +79,7 @@ const LEGACY_MODEL_REMAP = new Map([
     ['falconsai/nsfw_image_detection', NSFW_DEFAULTS.model],
 ]);
 
-function _resolveModelId(rawModelId, onLog) {
+function _resolveModelId(rawModelId: any, onLog?: any) {
     const _log = (level, msg) => { try { if (typeof onLog === 'function') onLog({ source: 'nsfw', level, msg }); } catch {} };
     const requested = (typeof rawModelId === 'string' && rawModelId.trim())
         ? rawModelId.trim()
@@ -106,7 +105,7 @@ function _resolveCacheDirAbs(cacheDirCfg) {
     return path.isAbsolute(raw) ? raw : path.resolve(PROJECT_ROOT, raw);
 }
 
-async function _loadClassifier(cfg, onProgress, onLog) {
+async function _loadClassifier(cfg: any, onProgress?: any, onLog?: any) {
     const _log = (level, msg) => { try { if (typeof onLog === 'function') onLog({ source: 'nsfw', level, msg }); } catch {} };
     const modelId = _resolveModelId(cfg.model, onLog);
     const dtypeWanted = VALID_DTYPES.has(String(cfg.dtype || '').toLowerCase())

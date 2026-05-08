@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * One-shot import of legacy JSON state files (config.json, disk_usage.json,
  * web-sessions.json, history-jobs.json, queue-history.json) into the
@@ -70,7 +69,7 @@ export function runStateMigration({
     clearStaleEmbeddings,
     pushQueueBacklog,
 }) {
-    const log = (msg) => {
+    const log: (msg: any) => void = (msg) => {
         // Plain console.log — we're inside getDb() before logger.js may have
         // wired its sinks. The migration is short and one-shot, so terse is
         // fine; operators see this in the boot transcript.
@@ -242,7 +241,7 @@ export function runStateMigration({
  * Exported so unit tests can drive it directly without spinning up the rest
  * of the migration plumbing.
  */
-export function _sanitiseAiModelIds({ kvGet, kvSet, log = () => {} }) {
+export function _sanitiseAiModelIds({ kvGet, kvSet, log }: { kvGet?: any; kvSet?: any; log?: any } = {}) {
     const cfg = kvGet('config');
     if (!cfg || typeof cfg !== 'object') return 0;
     const ai = cfg.advanced?.ai;
@@ -287,8 +286,8 @@ export function _reembedOnModelChange({
     kvGet,
     listEmbeddingModels,
     clearStaleEmbeddings,
-    log = () => {},
-}) {
+    log,
+}: any = {}) {
     const cfg = kvGet('config');
     const explicit = cfg?.advanced?.ai?.embeddings?.model;
     const currentModel =

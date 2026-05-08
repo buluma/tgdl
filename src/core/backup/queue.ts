@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Persistent backup-job queue.
 //
 // Jobs are SQLite rows in `backup_jobs`. The manager calls into this

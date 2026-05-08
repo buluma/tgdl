@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Runtime — singleton orchestrator that owns the realtime monitor +
  * downloader + auto-forwarder for the in-process web server.
@@ -23,7 +22,8 @@ import { RealtimeMonitor } from './monitor.js';
 import { RateLimiter } from './security.js';
 import { AutoForwarder } from './forwarder.js';
 import { migrateFolders } from './downloader.js';
-import { metrics } from './metrics.js';
+import { metrics as _metrics } from './metrics.js';
+const metrics: any = _metrics;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '../../data/config.json');

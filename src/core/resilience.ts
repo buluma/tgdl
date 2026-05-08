@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Resilience System - "The Immune System"
  * Proactively traps errors, decides on recovery, and keeps the process alive.

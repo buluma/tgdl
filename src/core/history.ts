@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * History Downloader - Batch download past messages
  */
@@ -218,7 +217,7 @@ export class HistoryDownloader extends EventEmitter {
             // SAFETY: Process in small batches with rest intervals
             // GramJS: passing `limit: undefined` to iterMessages iterates ALL messages.
 
-            const iterOpts = {
+            const iterOpts: any = {
                 limit: limit,
                 offsetDate: options.offsetDate,
             };
@@ -371,7 +370,7 @@ export class HistoryDownloader extends EventEmitter {
             // got smothered when the function returned normally.
             throw error;
         } finally {
-            const cancelled = this.cancelFlag === true;
+            const cancelled = this.cancelFlag !== false;
             this.running = false;
             this.emit('complete', { ...this.stats, lastMessageId: lastId, cancelled });
         }

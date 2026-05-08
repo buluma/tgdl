@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * AI subsystem manager — fan-out + scan loops.
  *
@@ -95,7 +94,7 @@ function _coerceConfig(cfg) {
  * Each call is wrapped in try/catch so a per-row failure doesn't kill
  * the surrounding scan loop.
  */
-async function _runOneRow(absPath, downloadId, cfg, onLog) {
+async function _runOneRow(absPath: any, downloadId: any, cfg: any, onLog?: any) {
     const cap = cfg.capabilities || {};
     let touched = false;
     const result = { embedding: false, faces: 0, tags: 0, phash: false };
@@ -248,7 +247,7 @@ export async function runIndexScan(cfg: any, { onProgress, signal, onLog }: any 
  * photo where `phash IS NULL` and computes the hash. Useful as a one-shot
  * before enabling near-duplicate dedup.
  */
-export async function runPhashScan({ onProgress, signal, onLog, fileTypes = ['photo'] } = {}) {
+export async function runPhashScan({ onProgress, signal, onLog, fileTypes = ['photo'] }: any = {}) {
     const summary = { processed: 0, total: 0, phash: 0, errors: 0 };
     const types = fileTypes.length ? fileTypes : ['photo'];
     const ph = types.map(() => '?').join(',');
@@ -299,7 +298,7 @@ export async function runPhashScan({ onProgress, signal, onLog, fileTypes = ['ph
  * Re-cluster every face row into people. Wipes the existing people table
  * first — faces survive (their embeddings are preserved) and get re-assigned.
  */
-export async function runFaceClustering(cfg, { onProgress, signal, onLog: _onLog = null } = {}) {
+export async function runFaceClustering(cfg: any, { onProgress, signal, onLog: _onLog = null }: any = {}) {
     const merged = _coerceConfig(cfg);
     onProgress?.({ stage: 'loading_faces' });
     const faces = listAllFaces();
