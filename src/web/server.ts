@@ -1099,7 +1099,7 @@ async function _buildMonitorStatusSnapshot() {
         }
     }
     const config = await readConfigSafe();
-    status.hint = !config.telegram?.apiId || !config.telegram?.apiHash
+    (status as any).hint = !config.telegram?.apiId || !config.telegram?.apiHash
         ? 'configure-api'
         : status.accounts === 0
             ? 'add-account'
@@ -1215,7 +1215,7 @@ app.post('/api/proxy/test', async (req, res) => {
     const start = Date.now();
     const sock = new net.Socket();
     let done = false;
-    const finish = (ok, error) => {
+    const finish = (ok: boolean, error?: any) => {
         if (done) return; done = true;
         try { sock.destroy(); } catch {}
         if (ok) return res.json({ ok: true, ms: Date.now() - start });
@@ -2191,3 +2191,4 @@ async function resolveGroupNamesFromTelegram() {
 }
 
 export { broadcast };
+t };

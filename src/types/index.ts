@@ -1,4 +1,6 @@
 // src/types/index.ts
+import { WebSocket as WS } from 'ws';
+
 export interface TelegramMessage {
   id: number;
   chatId: number;
@@ -18,30 +20,41 @@ export interface MediaPayload {
 }
 
 export interface ChatConfig {
-  id: number;
+  id: number | string;
   name: string;
-  filters: MediaFilter[];
+  filters: MediaFilter;
   autoForward?: number;
   enabled: boolean;
 }
 
 export interface DownloadRow {
   id: number;
-  group_id: number;
+  group_id: number | string;
   message_id: number;
   file_name: string;
   file_size: number;
   file_hash?: string;
-  media_type: string;
+  media_type?: string; // Legacy
+  file_type: string;
+  file_path: string;
+  pending_until?: number | null;
+  rescued_at?: number | null;
+  pinned?: number | boolean;
+  group_name?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface MediaFilter {
-  type: 'photo' | 'video' | 'audio' | 'document' | 'voice' | 'sticker';
-  minSize?: number;
-  maxSize?: number;
-  mimeType?: string;
+    photos: boolean;
+    videos: boolean;
+    files: boolean;
+    links: boolean;
+    voice: boolean;
+    audio: boolean;
+    gifs: boolean;
+    stickers: boolean;
+    urls: boolean;
 }
 
 export interface UserSession {
@@ -62,15 +75,23 @@ export interface AppConfig {
     username: string;
     password: string;
   };
+  monitor?: {
+    autoStart?: boolean;
+  };
+  groups?: ChatConfig[];
 }
 
 export interface WebSocketEvent {
-  type: 'download' | 'error' | 'status';
-  data: any;
+  type: string;
+  [key: string]: any;
 }
 
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+export interface SafeWebSocket extends WS {
+    role?: string;
 }

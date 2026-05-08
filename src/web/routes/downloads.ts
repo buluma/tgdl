@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import type { DownloadRow, AppConfig } from '../../types/index.js';
 import { getDb, getDownloads, getAllDownloads, searchDownloads, deleteDownloadsBy,
     setDownloadPinned, getDownloadById } from '../../core/db.js';
 import { sanitizeName } from '../../core/downloader.js';
@@ -94,18 +95,18 @@ export function createDownloadsRouter({
     // accurate counts.
     router.get('/api/downloads/all', async (req, res) => {
         try {
-            const page  = Math.max(1, parseInt(req.query.page, 10) || 1);
-            const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 50));
-            const type  = req.query.type || 'all';
+            const page  = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+            const limit = Math.max(1, Math.min(500, parseInt(req.query.limit as string, 10) || 50));
+            const type  = (req.query.type as string) || 'all';
             const offset = (page - 1) * limit;
             const pinnedOnly  = req.query.pinned === '1' || req.query.pinned === 'true';
             const pinnedFirst = req.query.pinnedFirst === '1' || req.query.pinnedFirst === 'true';
             const result = getAllDownloads(limit, offset, type, { pinnedOnly, pinnedFirst });
 
-            let config = {};
+            let config: Partial<AppConfig> = {};
             try { config = JSON.parse(await fs.readFile(configPath, 'utf8')); } catch { /* fall back to row.group_name */ }
             const configGroups = new Map((config.groups || []).map(g => [String(g.id), g]));
-            const files = result.files.map(row => {
+            const files = result.files.map((row: DownloadRow) => {
                 const typeFolder = row.file_type === 'photo' ? 'images'
                     : row.file_type === 'video' ? 'videos'
                     : row.file_type === 'audio' ? 'audio'
@@ -153,10 +154,10 @@ export function createDownloadsRouter({
     router.get('/api/downloads/:groupId', async (req, res, next) => {
         if (req.params.groupId === 'search') return next();
         try {
-            const { groupId } = req.params;
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 50;
-            const type = req.query.type || 'all';
+            const groupId = req.params.groupId;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 50;
+            const type = (req.query.type as string) || 'all';
             const offset = (page - 1) * limit;
 
             const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
@@ -174,7 +175,7 @@ export function createDownloadsRouter({
             // breaks every file that was downloaded under a different folder
             // name (e.g. "Unknown" before the group was named, or a renamed
             // group whose old folder still has the old files).
-            const files = result.files.map(row => {
+            const files = result.files.map((row: DownloadRow) => {
                 const typeFolder = row.file_type === 'photo' ? 'images'
                     : row.file_type === 'video' ? 'videos'
                     : row.file_type === 'audio' ? 'audio'
@@ -218,16 +219,16 @@ export function createDownloadsRouter({
         try {
             const q = String(req.query.q || '').trim();
             if (!q) return res.json({ files: [], total: 0, page: 1, totalPages: 0 });
-            const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-            const limit = Math.max(1, Math.min(200, parseInt(req.query.limit, 10) || 50));
+            const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+            const limit = Math.max(1, Math.min(200, parseInt(req.query.limit as string, 10) || 50));
             const groupId = req.query.groupId ? String(req.query.groupId) : undefined;
             const r = searchDownloads(q, { limit, offset: (page - 1) * limit, groupId });
 
-            const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
+            const config: Partial<AppConfig> = JSON.parse(await fs.readFile(configPath, 'utf8'));
             const groupFolderById = new Map();
             for (const g of (config.groups || [])) groupFolderById.set(String(g.id), sanitizeName(g.name));
 
-            const files = r.files.map(row => {
+            const files = r.files.map((row: DownloadRow) => {
                 const folder = groupFolderById.get(String(row.group_id)) || sanitizeName(row.group_name || 'unknown');
                 const typeFolder = row.file_type === 'photo' ? 'images'
                     : row.file_type === 'video' ? 'videos'

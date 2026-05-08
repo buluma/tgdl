@@ -570,7 +570,7 @@ export function createMaintenanceRouter({
         log({ source: 'dedup', level: 'info', msg: 'dedup scan starting' });
         (async () => {
             try {
-                const result = await dedupFindDuplicates({
+                const result: any = await dedupFindDuplicates({
                     onProgress: (p) => {
                         Object.assign(_dedupState, p, { running: true });
                         try { broadcast({ type: 'dedup_progress', ...p, running: true }); } catch {}
@@ -1269,7 +1269,7 @@ export function createMaintenanceRouter({
             if (!name || name.includes('/') || name.includes('\\') || name.includes('\0') || !name.endsWith('.log')) {
                 return res.status(400).json({ error: 'Invalid log name' });
             }
-            const lines = Math.max(10, Math.min(100000, parseInt(req.query.lines, 10) || 5000));
+            const lines = Math.max(10, Math.min(100000, parseInt(req.query.lines as string, 10) || 5000));
             const filePath = path.join(logsDir, name);
             if (!existsSync(filePath)) return res.status(404).json({ error: 'Log not found' });
 
@@ -1376,6 +1376,12 @@ export function createMaintenanceRouter({
             res.send(JSON.stringify(config, null, 2));
         } catch (e) {
             res.status(500).json({ error: e.message });
+        }
+    });
+
+    return router;
+}
+ });
         }
     });
 
