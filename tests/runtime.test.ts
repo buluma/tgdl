@@ -2,38 +2,38 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock heavy deps before importing runtime
 vi.mock('../src/core/downloader.ts', () => ({
-    DownloadManager: vi.fn(() => ({
-        on: vi.fn(),
-        stop: vi.fn().mockResolvedValue(undefined),
-        pendingCount: 3,
-        active: new Map([['a', 1]]),
-        workerCount: 2,
-        init: vi.fn().mockResolvedValue(undefined),
-        start: vi.fn(),
-    })),
+    DownloadManager: vi.fn(function () {
+        this.on = vi.fn();
+        this.stop = vi.fn().mockResolvedValue(undefined);
+        this.pendingCount = 3;
+        this.active = new Map([['a', 1]]);
+        this.workerCount = 2;
+        this.init = vi.fn().mockResolvedValue(undefined);
+        this.start = vi.fn();
+    }),
     migrateFolders: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../src/core/monitor.ts', () => ({
-    RealtimeMonitor: vi.fn(() => ({
-        on: vi.fn(),
-        start: vi.fn().mockResolvedValue(undefined),
-        stop: vi.fn().mockResolvedValue(undefined),
-        stats: { groups: 0 },
-    })),
+    RealtimeMonitor: vi.fn(function () {
+        this.on = vi.fn();
+        this.start = vi.fn().mockResolvedValue(undefined);
+        this.stop = vi.fn().mockResolvedValue(undefined);
+        this.stats = { groups: 0 };
+    }),
 }));
 
 vi.mock('../src/core/security.ts', () => ({
-    RateLimiter: vi.fn(() => ({
-        on: vi.fn(),
-    })),
+    RateLimiter: vi.fn(function () {
+        this.on = vi.fn();
+    }),
 }));
 
 vi.mock('../src/core/forwarder.ts', () => ({
-    AutoForwarder: vi.fn(() => ({
-        process: vi.fn().mockResolvedValue(undefined),
-        config: null,
-    })),
+    AutoForwarder: vi.fn(function () {
+        this.process = vi.fn().mockResolvedValue(undefined);
+        this.config = null;
+    }),
 }));
 
 vi.mock('../src/core/metrics.ts', () => ({
