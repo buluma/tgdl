@@ -13,7 +13,7 @@
  *   9. `testConnection(ctx)`      — credential probe
  */
 
-import { EventEmitter } from 'events';
+
 
 /**
  * @typedef {Object} BackupContext
@@ -49,8 +49,8 @@ export interface TestResult {
 
 export class BackupProvider {
     static get providerId(): string { throw new Error('subclass must override static providerId'); }
-    static get displayName(): string { return (this as any).providerId; }
-    static get configSchema(): any[] { return []; }
+    static get displayName(): string { return (this.constructor as typeof BackupProvider).providerId; }
+    static get configSchema(): Record<string, unknown>[] { return []; }
 
     /**
      * Validate config and warm up any long-lived clients (HTTP keep-alive,
@@ -59,7 +59,7 @@ export class BackupProvider {
      * @param {object} _cfg
      * @param {BackupContext} _ctx
      */
-    async init(_cfg: any, _ctx: BackupContext): Promise<void> { throw new Error('not implemented'); }
+    async init(_cfg: Record<string, unknown>, _ctx: BackupContext): Promise<void> { throw new Error('not implemented'); }
 
     /**
      * Stream-upload `localPath` to `remotePath`.
@@ -70,7 +70,7 @@ export class BackupProvider {
      * @param {BackupContext} _ctx
      * @returns {Promise<UploadResult>}
      */
-    async upload(_localPath: string, _remotePath: string, _opts: any, _ctx: BackupContext): Promise<UploadResult> { throw new Error('not implemented'); }
+    async upload(_localPath: string, _remotePath: string, _opts: Record<string, unknown>, _ctx: BackupContext): Promise<UploadResult> { throw new Error('not implemented'); }
 
     /**
      * Idempotent delete. Succeeds even if the remote object is already
@@ -100,6 +100,7 @@ export class BackupProvider {
      * @returns {AsyncGenerator<ListEntry>}
      */
     async *list(_prefix: string, _ctx: BackupContext): AsyncGenerator<ListEntry> {
+        if (false) yield {} as ListEntry;
         return; // subclass must override
     }
 
