@@ -229,7 +229,7 @@ async function main() {
         console.log(colorize('\n🚀 Telegram Downloader', 'cyan', 'bold'));
         console.log(colorize(`   Dashboard: ${url}`, 'green'));
         console.log(colorize('   First run? Open the URL and follow the setup wizard.', 'dim'));
-        console.log(colorize('   Power-user CLI: `node src/index.js menu`\n', 'dim'));
+        console.log(colorize('   Power-user CLI: `node dist/index.js menu`\n', 'dim'));
         await import('./web/server.js');
         return new Promise(() => {}); // keep alive
     }

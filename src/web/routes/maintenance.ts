@@ -1110,7 +1110,7 @@ export function createMaintenanceRouter({
         try {
             const cfg = _nsfwCfg();
             const counts = getNsfwTierCounts(cfg.fileTypes);
-            log({ source: 'nsfw', level: 'info', msg: `tier counts polled — scanned=${counts.scanned}/${counts.totalEligible}` });
+            log({ source: 'nsfw', level: 'debug', msg: `tier counts polled — scanned=${counts.scanned}/${counts.totalEligible}` });
             res.json({ ...counts, threshold: cfg.threshold, tiers_meta: NSFW_TIERS });
         } catch (e) {
             log({ source: 'nsfw', level: 'error', msg: `nsfw/v2/tiers failed: ${e?.message || e}` });
