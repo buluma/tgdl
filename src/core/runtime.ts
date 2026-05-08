@@ -147,7 +147,7 @@ class Runtime extends EventEmitter {
                 this.emit('event', { type: 'forward_error', payload: { error: e.message } });
             }
         });
-        this._downloader.on('error', ({ job, error }) => {
+        this._downloader.on('download_error', ({ job, error }) => {
             this.emit('event', {
                 type: 'download_error',
                 payload: { job: this._serializeJob(job), error: String(error) },
@@ -169,7 +169,7 @@ class Runtime extends EventEmitter {
         });
         this._monitor.on('download', fwd('monitor_download'));
         this._monitor.on('urls', fwd('monitor_urls'));
-        this._monitor.on('error', fwd('monitor_error'));
+        this._monitor.on('monitor_error', fwd('monitor_error'));
         this._monitor.on('started', fwd('monitor_started'));
         // Rescue Mode: monitor.handleDeleteEvent() emits 'rescued' for each
         // local row that was kept because Telegram deleted the source. The

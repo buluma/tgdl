@@ -187,7 +187,7 @@ export function createMaintenanceRouter({
         const groupId = req.params.id;
         const tracker = getGroupPurgeTracker(groupId);
         const r = tracker.tryStart(async ({ onProgress }) => {
-            const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
+            const config = await readConfigSafe();
             const configGroup = (config.groups || []).find(g => String(g.id) === String(groupId));
             const dbRow = getDb().prepare('SELECT group_name FROM downloads WHERE group_id = ? AND group_name IS NOT NULL LIMIT 1').get(String(groupId));
             const groupName = configGroup?.name || dbRow?.group_name || 'unknown';
@@ -278,7 +278,7 @@ export function createMaintenanceRouter({
             onProgress({ stage: 'deleting_rows' });
             const dbResult = deleteAllDownloads();
 
-            const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
+            const config = await readConfigSafe();
             config.groups = [];
             await writeConfigAtomic(config);
 
@@ -327,7 +327,7 @@ export function createMaintenanceRouter({
         const tracker = getJobTracker('resyncDialogs');
         const r = tracker.tryStart(async ({ onProgress }) => {
             try { clearEntityCache(); } catch {}
-            const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
+            const config = await readConfigSafe();
             const ids = new Set((config.groups || []).map(g => String(g.id)));
             try {
                 const rows = getDb().prepare('SELECT DISTINCT group_id FROM downloads').all();
@@ -622,7 +622,7 @@ export function createMaintenanceRouter({
         const r = tracker.tryStart(async ({ onProgress }) => {
             const total = cleanIds.length;
             onProgress({ processed: 0, total, stage: 'deleting' });
-            const result = dedupDeleteByIds(cleanIds);
+            const result = await dedupDeleteByIds(cleanIds);
             let processed = 0;
             for (const id of cleanIds) {
                 try { await purgeThumbsForDownload(id); } catch {}
@@ -1063,7 +1063,7 @@ export function createMaintenanceRouter({
             if (!cleanIds.length) {
                 return res.status(400).json({ error: 'No valid ids supplied' });
             }
-            const r = dedupDeleteByIds(cleanIds);
+            const r = await dedupDeleteByIds(cleanIds);
             for (const id of cleanIds) {
                 try { await purgeThumbsForDownload(id); } catch {}
             }
@@ -1162,7 +1162,7 @@ export function createMaintenanceRouter({
             log({ source: 'nsfw', level: 'warn', msg: `bulk-delete starting: ${ids.length} rows` });
             const total = ids.length;
             onProgress({ stage: 'deleting', op: 'delete', processed: 0, total });
-            const result = dedupDeleteByIds(ids);
+            const result = await dedupDeleteByIds(ids);
             let processed = 0;
             for (const id of ids) {
                 try { await purgeThumbsForDownload(id); } catch {}
@@ -1285,10 +1285,28 @@ export function createMaintenanceRouter({
                 return res.status(400).json({ error: 'Invalid log name' });
             }
 
-            // Naive tail — read whole file (logs are bounded), keep last N lines.
-            const raw = await fs.readFile(filePath, 'utf8');
-            const all = raw.split(/\r?\n/);
-            const tail = all.slice(Math.max(0, all.length - lines)).join('\n');
+            // Memory-safe tail — read only the end of the file.
+            const stats = await fs.stat(filePath);
+            const size = stats.size;
+            // Cap at 2 MB which is plenty for 5000-10000 lines of typical logs.
+            // Much safer than reading a 500 MB file.
+            const maxRead = 2 * 1024 * 1024; 
+            const bytesToRead = Math.min(size, maxRead);
+            const offset = size - bytesToRead;
+            
+            const handle = await fs.open(filePath, 'r');
+            let tail = '';
+            try {
+                const { buffer } = await handle.read(Buffer.alloc(bytesToRead), 0, bytesToRead, offset);
+                const raw = buffer.toString('utf8');
+                const all = raw.split(/\r?\n/);
+                // If we didn't read the whole file, the first line in our buffer 
+                // might be partial, so we drop it unless we read from offset 0.
+                const startIdx = (offset === 0) ? 0 : 1;
+                tail = all.slice(Math.max(startIdx, all.length - lines)).join('\n');
+            } finally {
+                await handle.close();
+            }
             res.setHeader('Content-Type', 'text/plain; charset=utf-8');
             res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
             res.send(tail);
@@ -1376,12 +1394,6 @@ export function createMaintenanceRouter({
             res.send(JSON.stringify(config, null, 2));
         } catch (e) {
             res.status(500).json({ error: e.message });
-        }
-    });
-
-    return router;
-}
- });
         }
     });
 

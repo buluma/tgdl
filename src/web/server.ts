@@ -60,6 +60,8 @@ import { createDownloadsRouter } from './routes/downloads.js';
 import { createGroupsRouter, bestGroupName } from './routes/groups.js';
 import { createConfigRouter } from './routes/config.js';
 
+const PORT = process.env.PORT || 3000;
+
 // Demote gramJS reconnect chatter from stderr/stdout to data/logs/network.log.
 // gramJS opens a fresh DC connection per file download (different DCs host
 // different media buckets), so a busy monitor logs hundreds of "Disconnecting
@@ -221,7 +223,7 @@ server.on('upgrade', async (req, socket, head) => {
             // Stamp the role on the WS so future per-event filtering
             // (admin-only broadcasts) can reference it without a second
             // session lookup.
-            ws.role = session.role;
+            (ws as any).role = session.role;
             wss.emit('connection', ws, req);
         });
     } catch {
@@ -2190,4 +2192,3 @@ async function resolveGroupNamesFromTelegram() {
 }
 
 export { broadcast };
-t };

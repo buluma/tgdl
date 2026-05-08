@@ -362,7 +362,7 @@ export class HistoryDownloader extends EventEmitter {
                 }
             }
         } catch (error) {
-            this.emit('error', error);
+            this.emit('history_error', error);
             // Re-throw so the Promise returned by downloadHistory rejects.
             // Without this re-throw, server.ts's `.then(...).catch(...)`
             // pattern only ever hit `.then()` — no matter how the run

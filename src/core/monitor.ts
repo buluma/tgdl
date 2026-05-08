@@ -645,7 +645,7 @@ export class RealtimeMonitor extends EventEmitter {
                 }
             }
         } catch (error) {
-            this.emit('error', { error: error.message });
+            this.emit('monitor_error', { error: error.message });
         }
     }
 

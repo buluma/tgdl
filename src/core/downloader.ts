@@ -621,7 +621,7 @@ export class DownloadManager extends EventEmitter {
                 this.emit('complete', { ...job, filePath });
             } catch (error) {
                 await this.reportFailure(job, error.message);
-                this.emit('error', { job, error: error.message });
+                this.emit('download_error', { job, error: error.message });
             }
 
             this.active.delete(job.key);

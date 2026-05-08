@@ -171,9 +171,9 @@ export async function findDuplicates(opts: any = {}) {
  * deleted) and an explicit confirm before reaching here.
  *
  * @param {number[]} ids
- * @returns {{ removed: number, freedBytes: number, missingFiles: number }}
+ * @returns {Promise<{ removed: number, freedBytes: number, missingFiles: number }>}
  */
-export function deleteByIds(ids) {
+export async function deleteByIds(ids) {
     if (!Array.isArray(ids) || ids.length === 0) {
         return { removed: 0, freedBytes: 0, missingFiles: 0 };
     }
@@ -185,30 +185,41 @@ export function deleteByIds(ids) {
 
     let freed = 0;
     let missing = 0;
-    for (const r of rows) {
-        const abs = resolveStoredPath(r.file_path);
-        if (abs) {
-            try { fs.unlinkSync(abs); freed += Number(r.file_size) || 0; }
-            catch (e) {
-                if (e?.code === 'ENOENT') { missing++; freed += Number(r.file_size) || 0; }
-                // Other errors (EPERM etc.) — skip the row, don't drop from DB
-                // so the user can retry / inspect.
-                else continue;
+    const idsToDrop = [];
+
+    // Use fs.promises.unlink to avoid blocking the event loop.
+    // Process in batches to avoid OS file descriptor limits if ids is huge.
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        const batch = rows.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (r) => {
+            const abs = resolveStoredPath(r.file_path);
+            let fileRemoved = false;
+            if (abs) {
+                try {
+                    await fs.promises.unlink(abs);
+                    freed += Number(r.file_size) || 0;
+                    fileRemoved = true;
+                } catch (e) {
+                    if (e?.code === 'ENOENT') {
+                        missing++;
+                        freed += Number(r.file_size) || 0;
+                        fileRemoved = true;
+                    }
+                    // Other errors (EPERM etc.) — skip the row, don't drop from DB
+                }
+            } else {
+                missing++;
+                freed += Number(r.file_size) || 0;
+                fileRemoved = true;
             }
-        } else {
-            missing++;
-            freed += Number(r.file_size) || 0;
-        }
+
+            if (fileRemoved) {
+                idsToDrop.push(r.id);
+            }
+        }));
     }
 
-    // Drop only the rows whose files we successfully removed (or were
-    // already missing — the row points at nothing anyway).
-    const idsToDrop = [];
-    for (const r of rows) {
-        const abs = resolveStoredPath(r.file_path);
-        const exists = abs ? fs.existsSync(abs) : false;
-        if (!exists) idsToDrop.push(r.id);
-    }
     let removed = 0;
     if (idsToDrop.length) {
         const ph = idsToDrop.map(() => '?').join(',');
