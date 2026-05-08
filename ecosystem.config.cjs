@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
         {
-            name: 'tgdl',
+            name: 'tgdl2',
             script: 'src/index.ts',
             interpreter: './node_modules/.bin/tsx',
 
