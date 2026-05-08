@@ -2,6 +2,8 @@
 // linter, so we'd rather fix real bugs than chase style.
 
 import js from '@eslint/js';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
 import globals from 'globals';
 
 export default [
@@ -39,6 +41,22 @@ export default [
         files: ['tests/**/*.js'],
         languageOptions: {
             globals: { ...globals.node },
+        },
+    },
+    {
+        files: ['**/*.ts'],
+        languageOptions: {
+            parser: tsParser,
+            parserOptions: {
+                ecmaVersion: 2024,
+                sourceType: 'module',
+            },
+            globals: { ...globals.node, ...globals.es2024 },
+        },
+        plugins: { '@typescript-eslint': tsPlugin },
+        rules: {
+            ...tsPlugin.configs.recommended.rules,
+            // Project-specific overrides
         },
     },
     {

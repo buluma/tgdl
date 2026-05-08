@@ -2,6 +2,38 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+interface Config {
+  telegram: {
+    apiId: string;
+    apiHash: string;
+  };
+  accounts: any[]; // TODO: type properly
+  pollingInterval: number;
+  groups: any[]; // TODO
+  download: {
+    path: string;
+    concurrent: number;
+    retries: number;
+    maxSpeed: number;
+  };
+  rateLimits: {
+    requestsPerMinute: number;
+    delayMs: { min: number; max: number };
+  };
+  diskManagement: {
+    maxTotalSize: string;
+    autoCleanup: boolean;
+    enabled: boolean;
+    sweepIntervalMin: number;
+  };
+  rescue: {
+    enabled: boolean;
+    retentionHours: number;
+    sweepIntervalMin: number;
+  };
+  // Add more as needed
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '../../data/config.json');
 
@@ -119,7 +151,7 @@ const DEFAULT_FILTERS = {
     urls: true
 };
 
-export function loadConfig() {
+export function loadConfig(): Config {
     try {
         if (!fs.existsSync(CONFIG_PATH)) {
             const dir = path.dirname(CONFIG_PATH);
@@ -184,7 +216,7 @@ export function loadConfig() {
     }
 }
 
-export function saveConfig(config) {
+export function saveConfig(config: Config): void {
     // Atomic write: stage to a temp file, then rename. Without this, an
     // fs.watch consumer (monitor.js) could read a half-written JSON if
     // the process is preempted mid-write, and JSON.parse would throw.

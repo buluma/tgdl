@@ -22,19 +22,21 @@
     "SECURITY.md"
   ],
   "scripts": {
-    "start": "node src/index.js",
-    "menu": "node src/index.js menu",
-    "monitor": "node src/index.js monitor",
-    "history": "node src/index.js history",
-    "auth": "node src/index.js auth",
-    "doctor": "node src/index.js doctor",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "menu": "node dist/index.js menu",
+    "monitor": "node dist/index.js monitor",
+    "history": "node dist/index.js history",
+    "auth": "node dist/index.js auth",
+    "doctor": "node dist/index.js doctor",
     "prod": "node runner.js",
-    "dev": "node --watch src/web/server.js",
+    "dev": "PORT=3011 tsx watch src/index.ts",
     "migrate": "node scripts/migrate_json_to_sqlite.js",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{js,html,css}\" \"*.{md,json}\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "type-check": "tsc --noEmit",
     "prepare": "husky || true"
   },
   "repository": {
@@ -80,11 +82,20 @@
     "googleapis": "^144.0.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.2",
+    "@types/scrypt-js": "^2.0.4",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
     "eslint": "^9.13.0",
     "globals": "^15.11.0",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "prettier": "^3.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
     "vitest": "^2.1.4"
   },
   "lint-staged": {

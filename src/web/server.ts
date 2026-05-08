@@ -4,7 +4,7 @@
  * Features: Groups, Settings, Viewer, Real Telegram Profile Photos
  */
 
-import express from 'express';
+import express, { type Application } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import net from 'net';
@@ -129,7 +129,7 @@ const SESSION_PASSWORD = getOrGenerateSecret();
 const LOGS_DIR = path.join(DATA_DIR, 'logs');
 const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
 
-const app = express();
+const app: Application = express();
 const server = createServer(app);
 // Cloudflare's idle/origin window is ~100 s; nginx default proxy_read_timeout
 // is 60 s. Setting our own timeouts slightly above keepAliveTimeout avoids

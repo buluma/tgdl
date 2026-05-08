@@ -1,7 +1,41 @@
-import Database from 'better-sqlite3';
+import Database, { type Database as DatabaseType } from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import type { DownloadRow } from '../types/index.js';
+
+interface InsertDownloadData {
+  groupId: string;
+  groupName?: string;
+  messageId: number;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  filePath?: string;
+  ttlSeconds?: number;
+  fileHash?: string;
+  pendingUntil?: number;
+}
+
+interface DownloadsResult {
+  files: DownloadRow[];
+  total: number;
+}
+
+interface GetDownloadsOpts {
+  pinnedFirst?: boolean;
+  pinnedOnly?: boolean;
+}
+
+interface GetAllDownloadsOpts {
+  pinnedOnly?: boolean;
+  pinnedFirst?: boolean;
+}
+
+interface StatsResult {
+  totalFiles: number;
+  totalSize: number;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // `TGDL_DATA_DIR` overrides the on-disk data root. Used by the test suite to
@@ -17,7 +51,7 @@ const DB_PATH = path.join(DATA_DIR, 'db.sqlite');
 // Singleton connection
 let db;
 
-export function getDb() {
+export function getDb(): DatabaseType {
     if (db) return db;
 
     if (!fs.existsSync(DATA_DIR)) {
@@ -366,7 +400,7 @@ export function listShareLinks({ downloadId = null, includeRevoked = true, limit
     return getDb().prepare(sql).all(...args, Math.max(1, Math.min(2000, limit)));
 }
 
-export function insertDownload(data) {
+export function insertDownload(data: InsertDownloadData) {
     const row = {
         groupId: data.groupId,
         groupName: data.groupName ?? null,
@@ -476,7 +510,7 @@ function _prep(sql) {
     return s;
 }
 
-export function isDownloaded(groupId, messageId) {
+export function isDownloaded(groupId: string | number, messageId: number): boolean {
     return !!_prep('SELECT 1 FROM downloads WHERE group_id = ? AND message_id = ? LIMIT 1')
         .get(String(groupId), Number(messageId));
 }
@@ -515,12 +549,12 @@ export function getMessageIdRange(groupId) {
  * infinite-scroll across the full library (previous All-Media path was
  * capped at 20 groups × 20 files = ~400 max — see v2.3.6 blocker).
  */
-export function getAllDownloads(limit = 50, offset = 0, type = 'all', opts = {}) {
+export function getAllDownloads(limit = 50, offset = 0, type = 'all', opts: GetAllDownloadsOpts = {}) {
     const lim = Math.max(1, Math.min(500, parseInt(limit, 10) || 50));
     const off = Math.max(0, parseInt(offset, 10) || 0);
     const typeMap = { images: 'photo', videos: 'video', documents: 'document', audio: 'audio' };
     const clauses = [];
-    const params = [];
+    const params: (string | number)[] = [];
     if (type !== 'all' && typeMap[type]) {
         clauses.push('file_type = ?');
         params.push(typeMap[type]);
@@ -544,12 +578,12 @@ export function getAllDownloads(limit = 50, offset = 0, type = 'all', opts = {})
     return { files: rows, total };
 }
 
-export function getDownloads(groupId, limit = 50, offset = 0, type = 'all', opts = {}) {
+export function getDownloads(groupId: string | number, limit = 50, offset = 0, type = 'all', opts: GetDownloadsOpts = {}): DownloadsResult {
     // Include rows for the linked discussion group (comment:${groupId}) so
     // comment media appears in the same gallery view as the parent channel.
     const commentGroupId = `comment:${groupId}`;
     let query = 'SELECT * FROM downloads WHERE (group_id = ? OR group_id = ?)';
-    const params = [groupId, commentGroupId];
+    const params: (string | number)[] = [groupId, commentGroupId];
 
     if (type !== 'all') {
         const typeMap = {
@@ -663,7 +697,7 @@ export function deleteDownloadsBy(opts) {
     return 0;
 }
 
-export function getStats() {
+export function getStats(): StatsResult {
     const db = getDb();
     const totalFiles = db.prepare('SELECT COUNT(*) as count FROM downloads').get().count;
     const totalSize = db.prepare('SELECT SUM(file_size) as size FROM downloads').get().size || 0;
