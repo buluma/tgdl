@@ -1,0 +1,2194 @@
+
+/**
+ * Web GUI Server - Configuration + Profile Photos + SQLite Data
+ * Features: Groups, Settings, Viewer, Real Telegram Profile Photos
+ */
+
+import express from 'express';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import net from 'net';
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
+import fs from 'fs/promises';
+import fsSync, { existsSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+import { TelegramClient } from 'telegram';
+import { StringSession } from 'telegram/sessions/index.js';
+import crypto from 'crypto';
+
+import { getOrGenerateSecret } from '../core/secret.js';
+import { getDb, getStats as getDbStats, backfillGroupNames,
+    getShareLinkForServe, bumpShareLinkAccess,
+    } from '../core/db.js';
+import * as ai from '../core/ai/index.js';
+import { SecureSession } from '../core/security.js';
+import { AccountManager } from '../core/accounts.js';
+import { loadConfig } from '../config/manager.js';
+import { runtime } from '../core/runtime.js';
+import { getDiskRotator } from '../core/disk-rotator.js';
+import * as integrity from '../core/integrity.js';
+import { ensureShareSecret, verifyShareToken, buildShareUrlPath,
+    clampTtlSeconds, applyShareLimits } from '../core/share.js';
+import { preloadClassifier as nsfwPreloadClassifier, NSFW_DEFAULTS } from '../core/nsfw.js';
+// runAutoUpdate, autoUpdateStatus — now used in routes/version.js
+import { getRescueSweeper } from '../core/rescue.js';
+import * as backup from '../core/backup/index.js';
+import { parseTelegramUrl, parseUrlList, UrlParseError } from '../core/url-resolver.js';
+import { metrics } from '../core/metrics.js';
+import {
+    hashPassword, verifyPassword, loginVerify, isAuthConfigured, isGuestEnabled,
+    issueSession, validateSession, revokeSession,
+    revokeAllSessions, revokeAllGuestSessions, startSessionGc,
+} from '../core/web-auth.js';
+import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from '../core/logger.js';
+import { BACKFILL_MAX_LIMIT } from '../core/constants.js';
+import { createJobTracker } from '../core/job-tracker.js';
+import { createShareRouter } from './routes/share.js';
+import { createVersionRouter, _readCurrentVersion } from './routes/version.js';
+import { createAuthRouter } from './routes/auth.js';
+import { createAccountsRouter } from './routes/accounts.js';
+import { createMonitorRouter } from './routes/monitor.js';
+import { createHistoryRouter, createSpawnBackfill, isBackfillActive } from './routes/history.js';
+import { createStoriesRouter } from './routes/stories.js';
+import { createQueueRouter } from './routes/queue.js';
+import { createBackupRouter } from './routes/backup.js';
+import { createAiRouter } from './routes/ai.js';
+import { createMaintenanceRouter } from './routes/maintenance.js';
+import { createDownloadsRouter } from './routes/downloads.js';
+import { createGroupsRouter, bestGroupName } from './routes/groups.js';
+import { createConfigRouter } from './routes/config.js';
+
+// Demote gramJS reconnect chatter from stderr/stdout to data/logs/network.log.
+// gramJS opens a fresh DC connection per file download (different DCs host
+// different media buckets), so a busy monitor logs hundreds of "Disconnecting
+// from <ip>:443/TCPFull..." lines per hour through the bare console — which
+// drowns out real errors. Both methods are wrapped because gramJS uses
+// console.log for most of its lifecycle messages and console.error for the
+// occasional warning. TGDL_DEBUG=1 brings them back.
+console.log = wrapConsoleMethod(console.log, 'gramjs');
+console.error = wrapConsoleMethod(console.error, 'gramjs');
+// Native-binary load failures from optional deps must NOT crash the
+// process. The most common offender is `onnxruntime-node` (transitive of
+// `@huggingface/transformers`, which our optional NSFW classifier uses):
+// it ships glibc-only Linux prebuilds, so on musl-based images (alpine)
+// the dynamic linker errors with `Error loading shared library
+// ld-linux-x86-64.so.2`. We move the dep to optionalDependencies in
+// package.json so a default install doesn't pull it at all, but a
+// historical install or a re-deploy without `npm prune` may leave the
+// broken module on disk. Catch the rejection here, log once, move on.
+let _nativeLoadFailWarned = false;
+process.on('unhandledRejection', (reason) => {
+    const msg = reason?.message || String(reason);
+    if (suppressNoise(msg, 'unhandledRejection')) return;
+    if (NATIVE_LOAD_FAIL.test(msg)) {
+        if (!_nativeLoadFailWarned) {
+            _nativeLoadFailWarned = true;
+            console.warn(
+                '[startup] An optional native module failed to load (' + msg.slice(0, 200) + '). ' +
+                'The dashboard will keep running; only the feature that triggered this load will be unavailable. ' +
+                'Most often this is `onnxruntime-node` from the optional NSFW classifier on a musl-based image — ' +
+                'reinstall with `npm install @huggingface/transformers` on a glibc image (Debian, Ubuntu, our default Dockerfile uses bookworm-slim) or remove it with `npm uninstall @huggingface/transformers`.'
+            );
+        }
+        return;
+    }
+    console.error('Unhandled rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    const msg = err?.message || String(err);
+    if (NATIVE_LOAD_FAIL.test(msg)) {
+        if (!_nativeLoadFailWarned) {
+            _nativeLoadFailWarned = true;
+            console.warn('[startup] Native module load failure swallowed:', msg.slice(0, 200));
+        }
+        return;
+    }
+    // Non-native uncaught exceptions are real bugs — surface them and
+    // crash so the watchdog can restart cleanly. Stop accepting new
+    // connections and give in-flight requests up to 5 s to flush
+    // before exiting; without the drain, every unhandled bug produces
+    // a 502 burst for every concurrent client during the restart.
+    console.error('Uncaught exception:', err);
+    try {
+        server.close();
+    } catch {}
+    setTimeout(() => process.exit(1), 5000).unref();
+});
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DATA_DIR = path.join(__dirname, '../../data');
+const CONFIG_PATH = path.join(DATA_DIR, 'config.json');
+const DOWNLOADS_DIR = path.join(DATA_DIR, 'downloads');
+const PHOTOS_DIR = path.join(DATA_DIR, 'photos');
+const SESSION_PATH = path.join(DATA_DIR, 'session.enc');
+const SESSION_PASSWORD = getOrGenerateSecret();
+const LOGS_DIR = path.join(DATA_DIR, 'logs');
+const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
+
+const app = express();
+const server = createServer(app);
+// Cloudflare's idle/origin window is ~100 s; nginx default proxy_read_timeout
+// is 60 s. Setting our own timeouts slightly above keepAliveTimeout avoids
+// the Node-default mismatch (5 s) where a long-poll request still inside
+// the proxy's window gets reset by the origin and the proxy reports 502.
+// headersTimeout must be ≥ keepAliveTimeout per Node docs.
+server.keepAliveTimeout = 65_000;
+server.headersTimeout = 70_000;
+server.requestTimeout = 120_000;
+// noServer: we authenticate the upgrade ourselves before handing the socket
+// off to the WebSocketServer. Without this, ws auto-binds to `server` and
+// accepts every connection including unauthenticated ones.
+const wss = new WebSocketServer({ noServer: true });
+const clients = new Set();
+
+// Recursive directory size — used by /api/stats as the fallback when the DB
+// catalogue is empty. We can't trust `data/disk_usage.json` alone because
+// older builds wrote it sparingly and never invalidated on `Purge all`, so a
+// purged dashboard would footer-report a multi-week-old "930 KB" snapshot.
+async function scanDirectorySize(dir) {
+    let total = 0;
+    async function walk(current) {
+        let entries;
+        try {
+            entries = await fs.readdir(current, { withFileTypes: true });
+        } catch {
+            return;
+        }
+        for (const entry of entries) {
+            const fullPath = path.join(current, entry.name);
+            if (entry.isDirectory()) {
+                await walk(fullPath);
+                continue;
+            }
+            try {
+                const st = await fs.stat(fullPath);
+                if (st.isFile()) total += st.size;
+            } catch { /* file disappeared mid-scan */ }
+        }
+    }
+    await walk(dir);
+    return total;
+}
+
+async function writeDiskUsageCache(size) {
+    try {
+        await fs.writeFile(path.join(DATA_DIR, 'disk_usage.json'), JSON.stringify({
+            size,
+            lastScan: Date.now(),
+        }));
+    } catch { /* best-effort cache */ }
+}
+
+function parseCookieHeader(header) {
+    const out = {};
+    if (!header) return out;
+    for (const cookie of header.split(';')) {
+        const eq = cookie.indexOf('=');
+        if (eq < 0) continue;
+        const k = cookie.slice(0, eq).trim();
+        const v = cookie.slice(eq + 1).trim();
+        if (k) out[k] = decodeURIComponent(v);
+    }
+    return out;
+}
+
+server.on('upgrade', async (req, socket, head) => {
+    try {
+        const config = await readConfigSafe();
+        const enabled = config.web?.enabled !== false;
+        const configured = isAuthConfigured(config.web);
+
+        // Fail-closed: drop unauth'd upgrades unless auth is intentionally off
+        // (which we no longer allow — !configured ⇒ block).
+        if (!enabled || !configured) {
+            socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n');
+            socket.destroy();
+            return;
+        }
+
+        const cookies = parseCookieHeader(req.headers.cookie);
+        const session = validateSession(cookies['tg_dl_session']);
+        if (!session) {
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+        }
+
+        wss.handleUpgrade(req, socket, head, (ws) => {
+            // Stamp the role on the WS so future per-event filtering
+            // (admin-only broadcasts) can reference it without a second
+            // session lookup.
+            ws.role = session.role;
+            wss.emit('connection', ws, req);
+        });
+    } catch {
+        try { socket.destroy(); } catch {}
+    }
+});
+
+// Telegram client
+let telegramClient = null;
+let isConnected = false;
+
+// Ensure photos directory exists
+if (!fsSync.existsSync(PHOTOS_DIR)) {
+    fsSync.mkdirSync(PHOTOS_DIR, { recursive: true });
+}
+
+// Trust the first reverse proxy if running behind one (rate-limit needs
+// the real client IP via X-Forwarded-For). When `TRUST_PROXY` is set
+// explicitly we honour that value; otherwise we fall back to `'loopback'`
+// — which trusts X-Forwarded-* only when the immediate hop is loopback
+// (i.e. a sibling reverse proxy on the same host) and otherwise treats
+// the connection IP as authoritative. This kills the noisy
+// `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` validation warning that
+// express-rate-limit emits whenever a Caddy / Traefik / nginx upstream
+// forwards X-Forwarded-For without us trusting it, while still rejecting
+// spoofed X-Forwarded-For headers from arbitrary internet clients.
+//
+// Override examples:
+//   TRUST_PROXY=1            // trust exactly one proxy hop (most setups)
+//   TRUST_PROXY=loopback     // explicit (same as the default)
+//   TRUST_PROXY=10.0.0.0/8   // trust an IP CIDR
+//   TRUST_PROXY=             // empty string → disable (untrusted env)
+const _trustProxyRaw = process.env.TRUST_PROXY;
+if (_trustProxyRaw === undefined) {
+    app.set('trust proxy', 'loopback');
+} else if (_trustProxyRaw !== '') {
+    app.set('trust proxy', /^\d+$/.test(_trustProxyRaw) ? parseInt(_trustProxyRaw, 10) : _trustProxyRaw);
+}
+
+// Force HTTPS — opt-in via config.web.forceHttps (default off, plain HTTP).
+// Skips localhost so it doesn't lock you out of local dev. `req.secure`
+// honours `X-Forwarded-Proto` only when `trust proxy` is set above, so
+// reverse-proxy users must export TRUST_PROXY=1 for this to work.
+// Non-GET/HEAD requests get a 403 instead of a 308 — clients shouldn't
+// silently retry mutations on a different scheme.
+app.use(async (req, res, next) => {
+    const config = await readConfigSafe();
+    if (!config.web?.forceHttps) return next();
+    // HSTS — set on every secure response so browsers remember the
+    // upgrade. 1-year max-age + includeSubDomains is the modern baseline;
+    // we deliberately omit `preload` because the operator has to opt in
+    // to the chrome list separately at hstspreload.org.
+    if (req.secure) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        return next();
+    }
+    const ip = req.ip || req.socket?.remoteAddress || '';
+    if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+        return res.status(403).json({ error: 'HTTPS required' });
+    }
+    const host = req.headers.host;
+    if (!host) return res.status(400).end();
+    return res.redirect(308, `https://${host}${req.originalUrl}`);
+});
+
+// Optional gzip/deflate/br compression for text responses (HTML / JS / CSS /
+// JSON / SVG). The middleware ships as a separate npm package so we
+// `createRequire` it here and silently skip when the host hasn't installed
+// it (e.g. an old `node_modules/`). When present, configure to skip
+// already-compressed media (image/* / video/* / audio/*) and tunable level
+// via `COMPRESSION_LEVEL` (1-9, default 6 — the same default the package
+// uses, exposed for operators on slow CPUs who want a lower setting).
+try {
+    const _localRequire = createRequire(import.meta.url);
+    const compression = _localRequire('compression');
+    const lvlEnv = parseInt(process.env.COMPRESSION_LEVEL, 10);
+    const level = Number.isFinite(lvlEnv) && lvlEnv >= 0 && lvlEnv <= 9 ? lvlEnv : 6;
+    app.use(compression({
+        level,
+        // Skip already-compressed payloads — gzipping a JPEG or MP4 burns
+        // CPU for a fraction of a percent of size win and breaks
+        // range-request semantics that the video player depends on.
+        filter: (req, res) => {
+            if (req.headers['x-no-compression']) return false;
+            const ct = String(res.getHeader('Content-Type') || '');
+            if (/^(image|video|audio)\//i.test(ct)) return false;
+            return compression.filter(req, res);
+        },
+    }));
+    if (process.env.TGDL_DEBUG === '1') {
+        console.log(`[startup] compression middleware enabled (level=${level})`);
+    }
+} catch {
+    // Module not installed — fine, dashboard runs uncompressed (Cloudflare /
+    // a reverse proxy in front will usually handle it instead).
+}
+
+// Security headers. CSP is on but allows the SPA's two CDN dependencies
+// (Tailwind + Remixicon) and the inline event-handlers we still use in
+// index.html. Tightening "self"-only is a follow-up once the inline handlers
+// are migrated to addEventListener.
+app.use(helmet({
+    contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+            'default-src': ["'self'"],
+            'script-src': [
+                "'self'", "'unsafe-inline'",
+                'https://cdn.tailwindcss.com',
+                'https://cdn.jsdelivr.net',
+            ],
+            // The SPA uses inline onclick / oninput handlers in index.html
+            // (toggle UI, range-slider value updaters, modal close-buttons).
+            // Helmet's defaults set script-src-attr to 'none' which would
+            // block them; allow inline here until the markup is migrated to
+            // addEventListener.
+            'script-src-attr': ["'unsafe-inline'"],
+            'style-src': [
+                "'self'", "'unsafe-inline'",
+                'https://cdn.jsdelivr.net',
+                'https://fonts.googleapis.com',
+            ],
+            'style-src-attr': ["'unsafe-inline'"],
+            'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net'],
+            'img-src': ["'self'", 'data:', 'blob:'],
+            'media-src': ["'self'", 'blob:'],
+            'connect-src': ["'self'", 'ws:', 'wss:'],
+            'object-src': ["'none'"],
+            'frame-ancestors': ["'self'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+}));
+
+// HTTP caching policy. Browsers (and intermediaries like Cloudflare) will
+// happily serve a 200 from disk for several seconds even on responses with
+// no cache headers — that surfaces as "the dashboard says I'm logged out
+// for 3 s after I log in", "stats look stuck", or "photos refuse to refresh
+// after a profile update". Pin each path prefix to an explicit policy:
+//
+//   /api/*      → never cache (auth-dependent + state mutates constantly)
+//   /files/*    → 60 s private (downloads list updates as the queue drains)
+//   /photos/*   → 1 d fresh, 7 d stale-while-revalidate (avatars rarely change)
+//   /js,/css,/locales → 1 h public (TODO: bump to 1 y immutable when we
+//                       hash filenames so cache-busting is automatic)
+//   /sw.js      → no-cache (PWA service worker — must always re-check)
+//
+// Sits BEFORE the static handlers so res.setHeader wins over express.static's
+// default ETag/Last-Modified-only behaviour.
+app.use((req, res, next) => {
+    const p = req.path;
+    if (p.startsWith('/api/')) {
+        // Auth-dependent — vary on the session cookie so a shared cache
+        // (Cloudflare with "Cache Everything", a corporate proxy) can't
+        // hand user A's response to user B. Use res.vary() so we APPEND
+        // to whatever Vary express may set later (Accept-Encoding etc.)
+        // instead of clobbering it.
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        res.setHeader('Pragma', 'no-cache');
+        res.vary('Cookie');
+    } else if (p.startsWith('/photos/')) {
+        // Avatars are content-addressed by group ID; new uploads overwrite
+        // the file in place, so a 1-day TTL is fine. SWR lets the browser
+        // serve a stale copy instantly while it revalidates in the background.
+        res.setHeader('Cache-Control', 'private, max-age=86400, stale-while-revalidate=604800');
+    } else if (p.startsWith('/files/')) {
+        // Downloads — content is immutable once written (filenames embed a
+        // timestamp; a re-download lands at a new filename), so a long TTL
+        // is safe and necessary: video playback issues many 64 KB range
+        // requests for a single clip, and a 60 s TTL was forcing the
+        // browser to revalidate every chunk through the auth + path-resolve
+        // middleware → the source of the playback lag the user reported.
+        res.setHeader('Cache-Control', 'private, max-age=2592000, immutable');
+    } else if (p === '/sw.js') {
+        // Service worker manifest must never be cached or PWA updates stick.
+        // (Future PWA agent may also set this; if so, theirs runs first via
+        // a more specific route — leave their version alone.)
+        res.setHeader('Cache-Control', 'no-cache, max-age=0');
+    } else if (p.startsWith('/js/') || p.startsWith('/css/') || p.startsWith('/icons/')) {
+        // Asset cache-busting middleware (further down) appends a
+        // ?v=<APP_VERSION> query string to every internal `<script>`,
+        // `<link>`, and `import` so the URL changes on every release.
+        // That makes it safe to cap the HTTP cache at the maximum
+        // (1 year + immutable) for any request that carries the `?v=`
+        // — the URL itself guarantees freshness on the next deploy.
+        // Bare requests (no `?v=`, e.g. someone curls the file
+        // directly) get the conservative 1 h fallback.
+        if (req.query && req.query.v) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else {
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+        }
+    } else if (p.startsWith('/locales/')) {
+        // Translations evolve more often than JS / CSS — keep the cap
+        // short (1 h) AND must-revalidate so a hash mismatch on the
+        // strings doesn't ship a week of stale labels. The cache-bust
+        // ?v= still works for instant invalidation when the SPA loads.
+        res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+    }
+    next();
+});
+
+// Defense-in-depth: a coarse global rate limit on every API path. The login
+// endpoint has its own stricter limiter below (which is NOT user-toggleable
+// — it stays on regardless to slow brute-force).
+//
+// Default is OFF — a private, auth-gated dashboard with a chatty SPA
+// (per-group photo fetches, status polling, gallery scrolling) trips a
+// modest cap easily, and the prior 600/min default was masking real
+// load as 429s. Users who expose the dashboard publicly can re-enable
+// it from Settings → Dashboard security.
+//
+// `_rateLimitConfig` is refreshed from disk every 30 s, plus immediately
+// after POST /api/config so toggling in the UI takes effect without a
+// restart. The skip + limit functions read this in-memory cache to stay
+// sync (express-rate-limit's hooks don't accept async).
+const RATE_LIMIT_DEFAULT_RPM = 10000;
+let _rateLimitConfig = { enabled: false, perMinute: RATE_LIMIT_DEFAULT_RPM };
+
+async function refreshRateLimitConfig() {
+    try {
+        const config = await readConfigSafe();
+        const cfg = config.web?.rateLimit || {};
+        const rpm = parseInt(cfg.perMinute, 10);
+        _rateLimitConfig = {
+            enabled: cfg.enabled === true,
+            perMinute: Number.isFinite(rpm) && rpm >= 10 ? Math.min(1000000, rpm) : RATE_LIMIT_DEFAULT_RPM,
+        };
+    } catch { /* keep last-known-good */ }
+}
+refreshRateLimitConfig();
+setInterval(refreshRateLimitConfig, 30 * 1000).unref();
+
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: () => _rateLimitConfig.perMinute,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: (req) => !req.path.startsWith('/api/') || !_rateLimitConfig.enabled,
+    // `xForwardedForHeader` is a self-help diagnostic from express-rate-
+    // limit v7 that flooded stderr with `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR`
+    // every time the upstream proxy forwarded an X-Forwarded-For header
+    // without us trusting it. We've already configured `app.set('trust
+    // proxy', …)` correctly above (loopback by default, overridable via
+    // TRUST_PROXY env) so the validate warning is just noise. Other
+    // validators stay enabled — only this one pair is muted.
+    validate: { xForwardedForHeader: false, trustProxy: false },
+});
+app.use(apiLimiter);
+
+// Body parsing middleware — small, JSON only. Bigger payloads (e.g., bulk
+// imports) should get their own dedicated route with a larger limit.
+app.use(express.json({ limit: '256kb' }));
+
+// CSRF defence-in-depth on top of `sameSite=strict` cookies. Reject any
+// state-changing request whose Origin or Referer header points at a
+// different host than the one we're serving from. CLI / extension /
+// curl clients that send neither header pass through — they can't have
+// obtained the session cookie cross-site anyway thanks to sameSite=strict.
+const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+app.use((req, res, next) => {
+    if (!STATE_CHANGING_METHODS.has(req.method)) return next();
+    const headerOrigin = req.headers.origin || req.headers.referer;
+    if (!headerOrigin) return next();   // CLI / native client — sameSite still gates them
+    let originHost;
+    try { originHost = new URL(headerOrigin).host; } catch { originHost = null; }
+    if (!originHost) {
+        return res.status(403).json({ error: 'Invalid Origin/Referer' });
+    }
+    const expected = req.headers.host;
+    if (originHost === expected) return next();
+    // Allow localhost and 127.0.0.1 to alias each other on dev setups
+    // where the SPA loads from one and posts to the other.
+    const localPair = (a, b) => /^(localhost|127\.0\.0\.1|\[?::1\]?)(:\d+)?$/i.test(a)
+                              && /^(localhost|127\.0\.0\.1|\[?::1\]?)(:\d+)?$/i.test(b)
+                              && a.split(':')[1] === b.split(':')[1];
+    if (localPair(originHost, expected)) return next();
+    return res.status(403).json({ error: 'Cross-origin request blocked' });
+});
+
+// Rolling expiry-cleanup for session tokens. Unref'd so it doesn't keep the
+// process alive on shutdown.
+startSessionGc();
+
+// Module-level config cache (definition; the `readConfigSafe` helper that
+// uses it is declared further down). Hoisted to ABOVE the share-secret
+// bootstrap IIFE because that IIFE awaits `readConfigSafe()` synchronously
+// up to its first internal await, and inside the helper we read
+// `_configCache.value` immediately — if the `let` below were still in its
+// original position (after the IIFE) it would be in TDZ at that read,
+// crashing module load with "Cannot access '_configCache' before
+// initialization". Logged in the wild as `[share] secret bootstrap deferred`.
+let _configCache = { at: 0, value: null };
+
+// Bootstrap the share-link HMAC secret + apply runtime limits from
+// config. Lazy-generated secret on first boot, persisted to
+// config.web.shareSecret. Done inside an async IIFE so a missing config
+
+// Share secret bootstrap — runs immediately on module load. If config.json
+// doesn't exist yet the error is caught so it doesn't crash module load.
+// Re-runs on the next request that touches `readConfigSafe`.
+(async () => {
+    try {
+        const cfg = await readConfigSafe();
+        const { generated } = ensureShareSecret(cfg);
+        if (generated) {
+            await writeConfigAtomic(cfg);
+            console.log('[share] generated new HMAC secret (first boot or rotation).');
+        }
+        applyShareLimits(cfg.advanced?.share || {});
+    } catch (e) {
+        // Non-fatal — verifyShareToken will throw at first /share/* request
+        // and the user will see a 500. Better than crashing the whole web.
+        console.warn('[share] secret bootstrap deferred:', e?.message || e);
+    }
+})();
+
+// ============ AUTHENTICATION ============
+
+// Simple cookie parser middleware
+app.use((req, res, next) => {
+    const list = {};
+    const rc = req.headers.cookie;
+    if (rc) {
+        rc.split(';').forEach((cookie) => {
+            const parts = cookie.split('=');
+            list[parts.shift().trim()] = decodeURI(parts.join('='));
+        });
+    }
+    req.cookies = list;
+    next();
+});
+
+// checkAuth + the force-https + rate-limit middlewares all call
+// readConfigSafe() on every request — during a video playback, the browser
+// issues many 64 KB range GETs to /files/* and each one used to disk-read
+// + JSON.parse the config. The 2-second TTL is short enough that toggle
+// changes feel instant in the settings UI but long enough to fold the
+// per-clip request burst into a single read.
+async function readConfigSafe() {
+    const now = Date.now();
+    if (_configCache.value && now - _configCache.at < 2000) return _configCache.value;
+    try {
+        const value = JSON.parse(await fs.readFile(CONFIG_PATH, 'utf8'));
+        _configCache = { at: now, value };
+        return value;
+    } catch {
+        _configCache = { at: now, value: {} };
+        return {};
+    }
+}
+function invalidateConfigCache() { _configCache = { at: 0, value: null }; }
+
+// Atomic config writer — temp-file + rename so a crash mid-write can't
+// leave config.json half-flushed. Several handlers used to call
+// `fs.writeFile(CONFIG_PATH, …)` directly; route them through this.
+async function writeConfigAtomic(config) {
+    const tmp = CONFIG_PATH + '.tmp';
+    await fs.writeFile(tmp, JSON.stringify(config, null, 4));
+    await fs.rename(tmp, CONFIG_PATH);
+    invalidateConfigCache();
+}
+
+// Paths that may be reached without an authenticated session.
+// PWA bits (manifest, service worker, icons) MUST be reachable pre-login
+// — the browser fetches them before the user has a session cookie.
+const PUBLIC_PATH_PREFIXES = [
+    '/login', '/setup-needed', '/css/', '/js/', '/locales/', '/favicon', '/metrics',
+    '/icons/', '/manifest.webmanifest', '/sw.js',
+    // Share-link public route — auth is the HMAC sig + DB row check inside
+    // the handler, NOT the dashboard cookie. Without this prefix, friends
+    // following a share URL would be redirected to /login.html.
+    '/share/',
+];
+const PUBLIC_API_PATHS = new Set([
+    '/api/login',
+    '/api/auth_check',
+    '/api/version',  // public so the status-bar chip can render pre-login
+    '/api/version/check',  // public update-check (GitHub releases poll, cached)
+    '/api/auth/setup', // first-run only — guarded inside the handler
+    '/api/auth/reset/request',  // logs token to stdout — no body returned
+    '/api/auth/reset/confirm',  // requires the stdout token + new password
+]);
+
+// Treat connections from the local machine as "trusted enough" to bootstrap
+// the very first password without prior auth. Any other origin still has to
+// go through the CLI to set the password.
+function isLocalRequest(req) {
+    const ip = req.ip || req.socket?.remoteAddress || '';
+    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
+function isPublicPath(p) {
+    if (PUBLIC_API_PATHS.has(p)) return true;
+    return PUBLIC_PATH_PREFIXES.some(pre => p === pre || p.startsWith(pre));
+}
+
+async function checkAuth(req, res, next) {
+    const config = await readConfigSafe();
+    const enabled = config.web?.enabled !== false; // default ON
+
+    // Fail-closed: dashboard is locked (or not yet configured).
+    if (!enabled || !isAuthConfigured(config.web)) {
+        if (req.path.startsWith('/api/') && !PUBLIC_API_PATHS.has(req.path)) {
+            return res.status(503).json({
+                error: 'Web dashboard not initialised. Run `npm run auth` to set a password.',
+                setupRequired: true,
+            });
+        }
+        if (!isPublicPath(req.path)) {
+            return res.redirect('/setup-needed.html');
+        }
+        return next();
+    }
+
+    if (isPublicPath(req.path)) return next();
+
+    const token = req.cookies['tg_dl_session'];
+    const session = validateSession(token);
+    if (session) {
+        req.role = session.role;
+        return next();
+    }
+
+    if (req.path.startsWith('/api/')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    return res.redirect('/login.html');
+}
+
+// ---- Guest authorization ---------------------------------------------------
+//
+// Default-deny: guest sessions can ONLY hit the explicit allowlist below.
+// Anything else (including endpoints that don't exist yet) returns 403 with
+// `adminRequired: true`. This is intentionally a chokepoint instead of
+// per-route requireAdmin() — a future dev who adds a new mutation route
+// gets admin-gating for free; forgetting to add `requireAdmin` would leak
+// the route, which is a much worse failure mode than the occasional 403
+// when a new read endpoint forgets to ask for guest access.
+// Guest scope: browse downloaded media, view their own files, sign out.
+// Operational surfaces (Groups picker, Backfill, Queue, Engine, Maintenance)
+// are admin-only on both the front (route gating) and the back (this list).
+// Frontend modules that touch these endpoints either skip the call when
+// `body[data-role="guest"]` is set, or fail-soft on the 403.
+const GUEST_GET_ALLOW = [
+    '/api/auth_check', '/api/me', '/api/version', '/api/version/check',
+    '/api/downloads',          // Library — list + per-group + paginated /all
+    '/api/groups',              // sidebar list of downloaded folders (no config secrets in the response)
+    '/api/stats',               // footer disk + file counters
+    '/api/thumbs',              // GET /api/thumbs/:id — image thumb stream
+];
+const GUEST_OTHER_ALLOW = new Set(['POST /api/logout']);
+
+function isGuestAllowed(req) {
+    // The middleware is mounted at `/api`, so inside this function `req.path`
+    // is RELATIVE to the mount point ('/monitor/status' instead of
+    // '/api/monitor/status'). The allowlist below is written with full paths
+    // for legibility — read the full path from `req.baseUrl + req.path` so
+    // the two halves agree. (Pre-fix every guest GET landed here as 403.)
+    const fullPath = (req.baseUrl || '') + req.path;
+    if (req.method === 'GET') {
+        return GUEST_GET_ALLOW.some(pre => fullPath === pre || fullPath.startsWith(pre + '/'));
+    }
+    return GUEST_OTHER_ALLOW.has(`${req.method} ${fullPath}`);
+}
+
+function guestGate(req, res, next) {
+    if (req.role === 'admin') return next();
+    if (req.role === 'guest' && isGuestAllowed(req)) return next();
+    if (req.role === 'guest') {
+        return res.status(403).json({ error: 'Admin only', adminRequired: true });
+    }
+    // No role on req → checkAuth let the request through as a public path,
+    // so don't second-guess it.
+    return next();
+}
+
+// ====== Auth routes — mounted via createAuthRouter =========================
+app.use(createAuthRouter({ readConfig: readConfigSafe, writeConfig: writeConfigAtomic, broadcast }));
+
+// ====== Version + auto-update routes =======================================
+app.use(createVersionRouter({ broadcast, log, getJobTracker: (k) => _jobTrackers[k] }));
+
+app.get('/api/auth_check', async (req, res) => {
+    const config = await readConfigSafe();
+    const configured = isAuthConfigured(config.web);
+    const enabled = config.web?.enabled !== false;
+    const session = configured && enabled
+        ? validateSession(req.cookies['tg_dl_session'])
+        : false;
+    res.json({
+        configured,
+        enabled,
+        authenticated: !!session,
+        // Role surfaced so the SPA can mark `<body data-role>` and hide
+        // admin-only UI for guest sessions in a single source-of-truth pass.
+        role: session ? session.role : null,
+        setupRequired: !configured || !enabled,
+        guestEnabled: isGuestEnabled(config.web),
+    });
+});
+
+// ====== Shared AccountManager (lazy) =======================================
+//
+// The web layer needs a Telegram client + account-management surface that
+// matches what the CLI's AccountManager already does. We initialise on
+// demand so a fresh install (no Telegram credentials yet) doesn't crash on
+// boot. Use getAccountManager() inside route handlers.
+let _accountManager = null;
+async function getAccountManager() {
+    if (_accountManager) return _accountManager;
+    const config = loadConfig();
+    if (!config.telegram?.apiId || !config.telegram?.apiHash) {
+        const e = new Error('Telegram API credentials not configured');
+        e.code = 'NO_API_CREDS';
+        throw e;
+    }
+    _accountManager = new AccountManager(config);
+    await _accountManager.loadAll();
+    return _accountManager;
+}
+
+// PWA: serve the service worker and the web app manifest BEFORE the auth
+// middleware so they're reachable on a fresh / logged-out browser. Both
+// have explicit Content-Type headers (some hosts mis-detect .webmanifest)
+// and the SW gets `Service-Worker-Allowed: /` so it can claim the whole
+// origin even though the script itself lives at a different path.
+app.get('/sw.js', (req, res) => {
+    res.set('Content-Type', 'application/javascript; charset=utf-8');
+    res.set('Service-Worker-Allowed', '/');
+    // Don't let intermediaries cache an old SW — the SW is the thing that
+    // controls cache behaviour for everything else, so it must update fast.
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
+
+app.get('/manifest.webmanifest', (req, res) => {
+    res.set('Content-Type', 'application/manifest+json; charset=utf-8');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.sendFile(path.join(__dirname, 'public', 'manifest.webmanifest'));
+});
+
+// Public Prometheus / OpenMetrics scrape — registered BEFORE the global
+// auth gate so a scrape job without a session cookie can still reach it.
+// Set TGDL_METRICS_TOKEN if you want gating; clients then need ?token=…
+app.get('/metrics', (req, res) => {
+    const wanted = process.env.TGDL_METRICS_TOKEN;
+    if (wanted && req.query.token !== wanted) {
+        res.status(401).type('text/plain').send('# unauthorized\n');
+        return;
+    }
+    runtime.status(); // refresh gauges
+    res.type('text/plain; version=0.0.4').send(metrics.render());
+});
+
+// ====== Public share-link route (HMAC-gated, no dashboard cookie) ==========
+//
+// Registered BEFORE the global checkAuth so a friend with a valid /share
+// URL never sees a /login redirect. Three independent gates protect the
+// route:
+//   1. shareLimiter      — per-IP rate limit (configurable via
+//                          config.advanced.share.rateLimit{Window,Max})
+//   2. verifyShareToken  — HMAC-SHA256, timing-safe constant-time compare
+//   3. getShareLinkForServe — DB row check (revoked? expired?)
+//
+// Only after all three pass do we delegate to safeResolveDownload + the
+// existing file-streaming code (so Range requests and Content-Type
+// behave identically to /files/*). Cache-Control: no-store keeps a
+// shared CDN/proxy from hijacking the bytes for the next visitor.
+//
+// Tiny cache around the last-loaded config so the rate-limit getters
+// don't sync-read disk on every share request. Refreshed by the
+// config_updated WS broadcast handler below + on first use.
+let _shareConfigCache = null;
+function _currentShareConfig() {
+    if (!_shareConfigCache) {
+        try { _shareConfigCache = (loadConfig().advanced?.share) || {}; }
+        catch { _shareConfigCache = {}; }
+    }
+    return _shareConfigCache;
+}
+function _invalidateShareConfigCache() { _shareConfigCache = null; }
+
+function _shareRateLimitWindowMs() {
+    const ms = Number(_currentShareConfig().rateLimitWindowMs);
+    return Number.isFinite(ms) && ms > 0 ? ms : 60_000;
+}
+
+function _shareRateLimitMax() {
+    const lim = Number(_currentShareConfig().rateLimitMax);
+    return Number.isFinite(lim) && lim > 0 ? lim : 60;
+}
+
+function _buildShareLimiter() {
+    return rateLimit({
+        // express-rate-limit expects a NUMBER for windowMs. Passing a
+        // function produces NaN at init-time and arms a near-1ms timer
+        // (TimeoutNaNWarning), which is a major stability hazard.
+        windowMs: _shareRateLimitWindowMs(),
+        limit: _shareRateLimitMax(),
+        standardHeaders: 'draft-7',
+        legacyHeaders: false,
+        message: { error: 'Too many requests — slow down.' },
+    });
+}
+
+let _shareLimiter = _buildShareLimiter();
+function shareLimiter(req, res, next) {
+    return _shareLimiter(req, res, next);
+}
+
+function _refreshShareLimiter() {
+    _shareLimiter = _buildShareLimiter();
+}
+
+// v2 URL shape: `/share/<linkId>?s=<sig>` (or `/share/<linkId>/<filename>?s=<sig>`
+// when `buildShareUrlPath()` was called with a friendly slug). The signature
+// embeds the row's `expires_at`, so the URL only needs the linkId + sig —
+// verifier looks up the row and re-derives the expected sig from the stored
+// expiry. Tolerates the legacy v1 `?exp=&sig=` shape as a fallback so links
+// minted before the v2 cutover still work until they expire naturally.
+app.get(['/share/:linkId', '/share/:linkId/:fileName'], shareLimiter, async (req, res, next) => {
+    try {
+        const linkId = parseInt(req.params.linkId, 10);
+        const sigV2 = typeof req.query.s === 'string' ? req.query.s : '';
+        const sigV1 = typeof req.query.sig === 'string' ? req.query.sig : '';
+        const expV1 = parseInt(req.query.exp, 10);
+        if (!Number.isInteger(linkId) || linkId <= 0 || (!sigV2 && !sigV1)) {
+            return res.status(400).type('text/plain').send('Invalid share link');
+        }
+
+        // Lookup first — we need `row.expires_at` to verify the v2 sig
+        // against. `getShareLinkForServe` also returns the revoked/expired
+        // reason so we can fail fast.
+        const lookup = getShareLinkForServe(linkId, Math.floor(Date.now() / 1000));
+        if (!lookup || lookup.reason) {
+            const code = lookup?.reason === 'revoked' ? 'revoked'
+                : lookup?.reason === 'expired' ? 'expired'
+                : 'not_found';
+            return res.status(401).json({ error: 'Share link is not valid', code });
+        }
+
+        // v2 path: derive expected sig from `row.expires_at` (the value
+        // that was signed at mint time). v1 fallback: trust the URL's
+        // `exp` value but still require it to match the row's expiry so
+        // a stale link can't outlive a re-mint.
+        let sigOk = false;
+        if (sigV2) {
+            sigOk = verifyShareToken(linkId, lookup.row.expires_at, sigV2);
+        } else if (sigV1 && Number.isInteger(expV1) && expV1 > 0) {
+            sigOk = expV1 === lookup.row.expires_at && verifyShareToken(linkId, expV1, sigV1);
+        }
+        if (!sigOk) {
+            return res.status(401).json({ error: 'Share link is not valid', code: 'bad_sig' });
+        }
+
+        const row = lookup.row;
+        const r = await safeResolveDownload(row.file_path);
+        if (!r.ok) {
+            // File row exists but disk file is gone — surface as 404 so the
+            // friend doesn't think the link is wrong.
+            return res.status(404).type('text/plain').send('File not found');
+        }
+
+        // Bump access counter — cheap, non-blocking on errors.
+        bumpShareLinkAccess(linkId);
+
+        // Anti-CDN cache + don't allow shared caches to cache. Bytes are
+        // gated per-token; if the token is later revoked, no cache layer
+        // should keep handing the file out.
+        res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        // Block clickjacking-style framing of the raw stream from a third
+        // party site (defence-in-depth — bytes themselves rarely matter
+        // here, but a video tag in an iframe could fingerprint the user).
+        res.setHeader('X-Frame-Options', 'DENY');
+        res.setHeader('Referrer-Policy', 'no-referrer');
+
+        // Force download when ?download=1, otherwise let the browser pick
+        // (mirrors /files/* semantics so an image/video plays inline by
+        // default and a generic file goes to the download tray).
+        const forceDl = req.query.download === '1' || req.query.download === 'true';
+        const safeName = (row.file_name || `file-${linkId}`).replace(/[\r\n"]/g, '_');
+        const disp = forceDl ? 'attachment' : 'inline';
+        // RFC 5987 filename* for non-ASCII filenames + ASCII fallback.
+        res.setHeader('Content-Disposition',
+            `${disp}; filename="${safeName.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+
+        // Hand off to express's static-style sendFile which supports Range.
+        // sendFile sets Content-Type from the extension, which is what we
+        // want — sniff-protection lives in helmet's nosniff header.
+        return res.sendFile(r.real, (err) => {
+            if (err && !res.headersSent) next(err);
+        });
+    } catch (e) {
+        console.error('share serve:', e);
+        if (!res.headersSent) res.status(500).type('text/plain').send('Internal error');
+    }
+});
+
+// Apply Auth Globally
+app.use(checkAuth);
+// Guest sessions: default-deny everything not on the explicit allowlist.
+// Mounted right after auth so every authenticated /api request is gated.
+app.use('/api', guestGate);
+
+// Serve static files AFTER auth
+// Asset cache-busting — append `?v=<APP_VERSION>` to every internal
+// `<script src="/js/...">` in the SPA HTML AND to every relative
+// `import './X.js'` inside the JS modules themselves. Without it, a
+// new deploy that doesn't change a file's bytes (or one whose change
+// the browser missed) keeps serving the previously-cached copy from
+// the HTTP cache for the full max-age window. With `?v=` the URL
+// changes on every release, so a stale cache hit is impossible — and
+// we can safely upgrade the JS Cache-Control to `immutable` + 1 y
+// (handled in the cache-headers middleware further up).
+//
+// In-memory cache so we only do the regex once per file per process
+// lifetime; a server restart re-reads (which is exactly what we want
+// after a `docker compose pull`).
+const _cacheBust = new Map();
+const _publicDir = path.join(__dirname, 'public');
+// Resolve the running version ONCE at module load — same source the
+// /api/version handler uses, but cached as a string here for the
+// per-request rewriters to avoid re-reading package.json each call.
+const appVersion = _readCurrentVersion();
+
+function _rewriteHtmlSrc(html) {
+    // Cover `/js/`, `/locales/`, AND `/css/` so a release that ships only
+    // CSS changes (UI polish without JS edits) still busts the cache.
+    // Without /css/ here, a stale main.css can outlive a deploy — the
+    // SW + browser HTTP cache happily serves yesterday's stylesheet
+    // even though the SPA shipped new selectors.
+    return html.replace(
+        /\b(src|href)="(\/(?:js|locales|css)\/[^"?]+\.(?:js|json|css))"/g,
+        (m, attr, url) => `${attr}="${url}?v=${appVersion}"`
+    );
+}
+
+function _rewriteJsImports(js) {
+    // Match: `from './X.js'`, `import './X.js'`, `import('./X.js')`.
+    // Skip any specifier that already carries a query string.
+    return js.replace(
+        /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])(\.{1,2}\/[^'"?]+\.js)\2/g,
+        (m, lead, q, spec) => `${lead}${q}${spec}?v=${appVersion}${q}`
+    );
+}
+
+function _serveCacheBusted(reqPath, mime, rewrite, res) {
+    let body = _cacheBust.get(reqPath);
+    if (!body) {
+        try {
+            const filePath = path.join(_publicDir, reqPath);
+            const real = fsSync.realpathSync(filePath);
+            const root = fsSync.realpathSync(_publicDir);
+            if (!real.startsWith(root + path.sep) && real !== root) return false;
+            body = rewrite(fsSync.readFileSync(real, 'utf8'));
+            _cacheBust.set(reqPath, body);
+        } catch { return false; }
+    }
+    res.setHeader('Content-Type', mime);
+    res.send(body);
+    return true;
+}
+
+app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    // HTML entry points — rewrite the two `<script>` tags + any
+    // future inline asset link the index gains.
+    if (req.path === '/' || req.path === '/index.html'
+        || req.path === '/login.html' || req.path === '/setup-needed.html'
+        || req.path === '/add-account.html') {
+        const file = req.path === '/' ? '/index.html' : req.path;
+        if (_serveCacheBusted(file, 'text/html; charset=utf-8', _rewriteHtmlSrc, res)) return;
+        return next();
+    }
+    // JS modules — rewrite every relative `import './X.js'` so the
+    // child URL inherits the same `?v=` and the browser HTTP cache
+    // can't stale-serve a single module while the rest of the bundle
+    // is fresh. The Cache-Control middleware further up keys off the
+    // `?v=` query string to upgrade these to immutable.
+    if (req.path.startsWith('/js/') && req.path.endsWith('.js')) {
+        if (_serveCacheBusted(req.path, 'application/javascript; charset=utf-8', _rewriteJsImports, res)) return;
+        return next();
+    }
+    next();
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/photos', express.static(PHOTOS_DIR));
+
+// Serve CHANGELOG.md from the project root for the in-app changelog
+// viewer (changelog-viewer.js). Read on every request so a `git pull`
+// without a process restart picks up the new content. Cap at a sane
+// size so we never accidentally try to stream a 50 MB file. 1 hour
+// browser cache is fine — the SPA invalidates it via the `?v=` token.
+app.get('/CHANGELOG.md', async (req, res) => {
+    try {
+        const p = path.resolve(__dirname, '../../CHANGELOG.md');
+        const st = await fs.stat(p).catch(() => null);
+        if (!st || !st.isFile()) return res.status(404).type('text/plain').send('CHANGELOG not found');
+        if (st.size > 2 * 1024 * 1024) return res.status(413).type('text/plain').send('CHANGELOG too large');
+        const body = await fs.readFile(p, 'utf8');
+        res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+        res.send(body);
+    } catch (e) {
+        res.status(500).type('text/plain').send(e.message);
+    }
+});
+
+// ============ API ENDPOINTS ============
+
+function tgAuthErrorBody(e) {
+    if (e?.code === 'NO_API_CREDS') {
+        return {
+            status: 503,
+            body: { error: 'Telegram API credentials not configured. Add telegram.apiId and telegram.apiHash in Settings first.', code: 'NO_API_CREDS' },
+        };
+    }
+    return { status: 400, body: { error: e?.message || 'Bad request' } };
+}
+
+// ====== Accounts routes — mounted via createAccountsRouter =================
+app.use(createAccountsRouter({ dataDir: DATA_DIR, configPath: CONFIG_PATH, getAccountManager }));
+
+// ====== Monitor / runtime control ==========================================
+//
+// Starts the realtime monitor inside the web process so users don't have to
+// keep a separate terminal open. Engine events are forwarded to all
+// authenticated WebSocket clients.
+
+runtime.on('state', (s) => broadcast({ type: 'monitor_state', state: s.state, error: s.error }));
+runtime.on('event', (e) => broadcast({ type: 'monitor_event', ...e }));
+
+// Catch-up backfill — fired by monitor when boot-time inspection finds a
+// group whose newest stored message_id lags Telegram's current top by
+// more than `advanced.history.autoCatchUpThreshold`. We spawn an
+// internal backfill in `catch-up` mode so the gap that built up while
+// the container was down closes itself with no user action required.
+runtime.on('catch_up_needed', ({ groupId, gap }) => {
+    const histCfg = loadConfig().advanced?.history || {};
+    // Bound the catch-up size — a group that fell weeks behind could
+    // need ~10000s of messages, so cap at a sane ceiling. Falls back
+    // to "unlimited" when autoFirstLimit is 0 (operator opt-in for
+    // long catch-ups).
+    const ceiling = Number(histCfg.autoFirstLimit ?? 100);
+    const limit = ceiling > 0 ? Math.min(ceiling * 10, BACKFILL_MAX_LIMIT) : null;
+    _spawnInternalBackfill({
+        groupId, limit, mode: 'catch-up', reason: 'auto-catch-up',
+    }).then(jobId => {
+        if (jobId) console.log(`[catch-up] gap=${gap} → spawned backfill ${jobId} (limit=${limit ?? 'all'})`);
+    }).catch((e) => console.warn('[catch-up] spawn failed:', e?.message || e));
+});
+
+// Build the monitor-status snapshot. Used by both the GET endpoint
+// (for the SPA's first paint / a manual refresh) AND the periodic
+// WS broadcaster below — keeping them on one code path so a future
+// field never lands in one place but not the other.
+async function _buildMonitorStatusSnapshot() {
+    const status = runtime.status();
+    if (status.accounts === 0) {
+        try {
+            const am = await getAccountManager();
+            status.accounts = am.count;
+        } catch {
+            try {
+                const dir = path.join(DATA_DIR, 'sessions');
+                if (existsSync(dir)) {
+                    status.accounts = fsSync.readdirSync(dir).filter(f => f.endsWith('.enc')).length;
+                }
+            } catch { /* ignore */ }
+        }
+    }
+    const config = await readConfigSafe();
+    status.hint = !config.telegram?.apiId || !config.telegram?.apiHash
+        ? 'configure-api'
+        : status.accounts === 0
+            ? 'add-account'
+            : (config.groups || []).filter(g => g.enabled).length === 0
+                ? 'enable-group'
+                : null;
+    return status;
+}
+
+// ====== Monitor routes — mounted via createMonitorRouter ===================
+app.use(createMonitorRouter({ getMonitorStatus: _buildMonitorStatusSnapshot, getAccountManager, runtime, loadConfig }));
+
+// Push the monitor-status snapshot every 3 s so the SPA's status-bar
+// queue / active counters update live without polling. Skip the
+// broadcast when nobody's connected (no WS clients) — saves a DB hit
+// the SPA wouldn't have asked for. Coalesces across overlapping
+// async builds via the in-flight flag.
+let _statusPushBusy = false;
+async function _pushMonitorStatus() {
+    if (_statusPushBusy || clients.size === 0) return;
+    _statusPushBusy = true;
+    try {
+        const snap = await _buildMonitorStatusSnapshot();
+        broadcast({ type: 'monitor_status_push', payload: snap });
+    } catch { /* best-effort */ }
+    finally { _statusPushBusy = false; }
+}
+const _monitorStatusTimer = setInterval(_pushMonitorStatus, 3000);
+_monitorStatusTimer.unref?.();
+
+// Push the gallery /api/stats snapshot every 30 s. Less frequent than
+// monitor/status because the numbers (total files, disk usage) only
+// change when downloads finish — and those events already trigger an
+// SPA refresh of their own. This is the safety net for a long-idle
+// session where the user wandered to another tab.
+let _statsPushBusy = false;
+async function _pushStats() {
+    if (_statsPushBusy || clients.size === 0) return;
+    _statsPushBusy = true;
+    try {
+        const dbStats = getDbStats();
+        const total = Number(dbStats.totalSize) || 0;
+        broadcast({
+            type: 'stats_push',
+            payload: {
+                totalFiles: dbStats.totalFiles,
+                totalSize: total,
+                diskUsage: total,
+                diskUsageFormatted: formatBytes(total),
+            },
+        });
+    } catch { /* best-effort */ }
+    finally { _statsPushBusy = false; }
+}
+const _statsPushTimer = setInterval(_pushStats, 30000);
+_statsPushTimer.unref?.();
+
+// ====== History / backfill routes — mounted via createHistoryRouter =========
+const _historyCtx = { dataDir: DATA_DIR, loadConfig, getAccountManager, runtime, broadcast, log };
+const _spawnInternalBackfill = createSpawnBackfill(_historyCtx);
+app.use(createHistoryRouter(_historyCtx));
+
+// ====== Queue routes — mounted via createQueueRouter =======================
+app.use(createQueueRouter({ dataDir: DATA_DIR, downloadsDir: DOWNLOADS_DIR, runtime, broadcast }));
+
+// ====== Proxy test =========================================================
+//
+// Briefly opens a TCP connection to host:port to confirm the proxy is
+// reachable. We don't speak SOCKS/MTProto here — that's the job of gramJS at
+// the next monitor start — but a TCP open is enough to catch typos and DNS
+// misconfiguration without needing a full Telegram round-trip.
+
+// ====== Stories routes — mounted via createStoriesRouter ===================
+app.use(createStoriesRouter({ getAccountManager, runtime, loadConfig }));
+
+// Refuse to probe addresses that are obviously private or local — without
+// this, an authenticated user could use the dashboard as a port scanner for
+// the host's internal network. RFC 1918 + loopback + link-local + IPv6
+// ULA / loopback / link-local + multicast are all blocked.
+const SSRF_BLOCKLIST = [
+    /^127\./,                      // 127.0.0.0/8
+    /^10\./,                       // 10.0.0.0/8
+    /^192\.168\./,                 // 192.168.0.0/16
+    /^172\.(1[6-9]|2\d|3[01])\./,  // 172.16.0.0/12
+    /^169\.254\./,                 // 169.254.0.0/16 link-local
+    /^0\./,                        // 0.0.0.0/8
+    /^22[4-9]\./, /^23\d\./,       // multicast
+    /^::1$/, /^fe80:/i, /^fc00:/i, /^fd[0-9a-f]{2}:/i,
+];
+
+function isPrivateHost(host) {
+    if (!host) return true;
+    const lower = host.toLowerCase();
+    if (lower === 'localhost' || lower.endsWith('.local') || lower.endsWith('.internal')) return true;
+    return SSRF_BLOCKLIST.some(re => re.test(host));
+}
+
+app.post('/api/proxy/test', async (req, res) => {
+    const { host, port } = req.body || {};
+    if (!host || !port) return res.status(400).json({ error: 'host and port required' });
+    if (typeof host !== 'string' || host.length > 253) {
+        return res.status(400).json({ error: 'invalid host' });
+    }
+    if (isPrivateHost(host)) {
+        return res.status(400).json({
+            error: 'Private / loopback / link-local addresses are not allowed for proxy probes.',
+        });
+    }
+    const p = parseInt(port, 10);
+    if (!Number.isFinite(p) || p < 1 || p > 65535) {
+        return res.status(400).json({ error: 'port must be 1-65535' });
+    }
+    const start = Date.now();
+    const sock = new net.Socket();
+    let done = false;
+    const finish = (ok, error) => {
+        if (done) return; done = true;
+        try { sock.destroy(); } catch {}
+        if (ok) return res.json({ ok: true, ms: Date.now() - start });
+        return res.json({ ok: false, error });
+    };
+    sock.setTimeout(5000);
+    sock.once('connect', () => finish(true));
+    sock.once('error', (e) => finish(false, e.message));
+    sock.once('timeout', () => finish(false, 'timeout'));
+    sock.connect(p, host);
+});
+
+// ====== Download-by-Link ===================================================
+//
+// Paste any t.me message link (or a tg:// URL) and pull just that media
+// into the queue. Supports private channels (/c/<id>/...), forum topics
+// (extra path segment), and bulk newline-separated input.
+
+function detectMediaType(message) {
+    const m = message?.media || message;
+    if (m?.sticker || message?.sticker) return 'stickers';
+    if (m?.photo || m?.className === 'MessageMediaPhoto') return 'photos';
+    const doc = m?.document || (m?.className === 'MessageMediaDocument' ? m : null);
+    if (doc) {
+        const mime = doc.mimeType || '';
+        if (mime.startsWith('video/')) return 'videos';
+        if (mime.startsWith('audio/')) return mime.includes('ogg') ? 'voice' : 'audio';
+        if (mime.includes('gif') || (doc.attributes || []).some(a => a.className === 'DocumentAttributeAnimated')) return 'gifs';
+        if (mime.includes('image/webp') || mime.includes('application/x-tgsticker')) return 'stickers';
+        return 'documents';
+    }
+    return null;
+}
+
+app.post('/api/download/url', async (req, res) => {
+    try {
+        const { url, urls } = req.body || {};
+        const list = Array.isArray(urls) ? urls : (url ? parseUrlList(url) : []);
+        if (!list.length) return res.status(400).json({ error: 'Provide url or urls' });
+
+        const am = await getAccountManager();
+        if (am.count === 0) return res.status(409).json({ error: 'No Telegram accounts loaded' });
+
+        const { DownloadManager } = await import('../core/downloader.js');
+        const { RateLimiter } = await import('../core/security.js');
+
+        const config = loadConfig();
+        const standalone = !runtime._downloader;
+        const downloader = runtime._downloader || new DownloadManager(
+            am.getDefaultClient(), config, new RateLimiter(config.rateLimits),
+        );
+        if (standalone) {
+            await downloader.init();
+            downloader.start();
+        }
+
+        const results = [];
+        for (const raw of list) {
+            try {
+                const parsed = parseTelegramUrl(raw);
+                // Try every account until one can read the chat
+                let resolved = null;
+                let workingClient = null;
+                for (const [, c] of am.clients) {
+                    try {
+                        const entity = await c.getEntity(parsed.chatRef);
+                        const messages = await c.getMessages(entity, { ids: [parsed.messageId] });
+                        if (messages?.[0]) {
+                            resolved = { entity, message: messages[0] };
+                            workingClient = c;
+                            break;
+                        }
+                    } catch { /* try next */ }
+                }
+                if (!resolved) { results.push({ url: raw, ok: false, error: 'No account could read the message' }); continue; }
+
+                const mediaType = detectMediaType(resolved.message);
+                if (!mediaType) { results.push({ url: raw, ok: false, error: 'Message has no downloadable media' }); continue; }
+
+                const groupId = String(resolved.entity.id);
+                const groupName =
+                    resolved.entity.title ||
+                    resolved.entity.username ||
+                    resolved.entity.firstName ||
+                    groupId;
+                // Pin the resolver's client to this job. We used to mutate
+                // `downloader.client` here, but that race-condition'd any
+                // concurrent download — every in-flight job suddenly tried
+                // to fetch bytes through the URL-resolver's session. Per-
+                // job `client` lets each download stick to the session that
+                // can actually read the message.
+                const accountId = am.getIdForClient(workingClient);
+                const meta = accountId ? am.metadata?.get?.(accountId) : null;
+                const accountName =
+                    meta?.name ||
+                    meta?.username ||
+                    meta?.phone ||
+                    (accountId ? `#${accountId}` : null);
+                const ok = await downloader.enqueue(
+                    {
+                        message: resolved.message,
+                        groupId,
+                        groupName,
+                        mediaType,
+                        client: workingClient,
+                        accountId: accountId || null,
+                        accountName: accountName || null,
+                    },
+                    1,
+                ); // realtime priority
+                results.push({ url: raw, ok, group: groupName, messageId: parsed.messageId, mediaType });
+            } catch (e) {
+                results.push({ url: raw, ok: false, error: e instanceof UrlParseError ? e.message : (e?.message || 'Failed') });
+            }
+        }
+
+        if (standalone) {
+            // Tear down once jobs drain — fire-and-forget.
+            (async () => {
+                while (downloader.pendingCount > 0 || downloader.active.size > 0) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                downloader.stop().catch(() => {});
+            })().catch(e => console.warn('[download/url] standalone drain failed:', e?.message || e));
+        }
+
+        res.json({ success: true, results });
+    } catch (e) {
+        console.error('POST /api/download/url:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+
+// 1. Stats API (SQLite)
+app.get('/api/stats', async (req, res) => {
+    try {
+        const dbStats = getDbStats(); // From DB
+        const config = JSON.parse(await fs.readFile(CONFIG_PATH, 'utf8'));
+        
+        // Disk usage: prefer the live `SUM(file_size)` from the DB because
+        // it's always in sync with the row count we just read. If the DB
+        // sum is zero (catalogue empty after a Purge / before first run),
+        // walk `data/downloads/` for the real on-disk size and refresh the
+        // JSON cache — never trust a stale `disk_usage.json` snapshot, the
+        // legacy cache was never invalidated on purge so a wiped dashboard
+        // would footer-report a multi-week-old "930 KB".
+        let diskUsage = Number(dbStats.totalSize) || 0;
+        if (diskUsage <= 0) {
+            diskUsage = await scanDirectorySize(DOWNLOADS_DIR);
+            await writeDiskUsageCache(diskUsage);
+        }
+
+        // Account count: reflect the on-disk session files even when no
+        // TelegramClient is currently connected.
+        let accountCount = 0;
+        try {
+            const am = await getAccountManager();
+            accountCount = am.count;
+        } catch {
+            try {
+                const dir = path.join(DATA_DIR, 'sessions');
+                if (existsSync(dir)) {
+                    accountCount = fsSync.readdirSync(dir).filter(f => f.endsWith('.enc')).length;
+                }
+            } catch { /* ignore */ }
+        }
+
+        res.json({
+            // DB Stats
+            totalFiles: dbStats.totalFiles,
+            totalSize: dbStats.totalSize,
+
+            // Disk Stats
+            diskUsage: diskUsage,
+            diskUsageFormatted: formatBytes(diskUsage),
+            maxDiskSize: config.diskManagement?.maxTotalSize || '0',
+
+            // Config Stats
+            totalGroups: config.groups?.length || 0,
+            enabledGroups: config.groups?.filter(g => g.enabled).length || 0,
+            accounts: accountCount,
+            apiConfigured: !!(config.telegram?.apiId && config.telegram?.apiHash),
+            telegramConnected: isConnected || (runtime.state === 'running'),
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Dialog cache state — kept here so maintenance router's resetDialogsCaches
+// closure and downloads router's getDialogsNameCache closure can reference them.
+let _dialogsResponseCache = { at: 0, body: null };
+let _dialogsNameCache = { at: 0, byId: new Map() };
+let _dialogsTypeCache = new Map();
+// Thin wrapper passed to downloads router so it reads the live type cache.
+function dialogsTypeFor(id) {
+    return _dialogsTypeCache.get(String(id)) || null;
+}
+
+// ====== Groups + dialogs routes — mounted via createGroupsRouter ============
+app.use(createGroupsRouter({
+    configPath: CONFIG_PATH,
+    photosDir: PHOTOS_DIR,
+    sessionsDir: SESSIONS_DIR,
+    broadcast,
+    getAccountManager,
+    getTelegramClient: () => telegramClient,
+    resolveEntityAcrossAccounts,
+    downloadProfilePhoto,
+    writeConfigAtomic,
+    getJobTracker: (k) => _jobTrackers[k],
+    spawnInternalBackfill: (opts) => _spawnInternalBackfill(opts),
+    isBackfillActive,
+    getDialogsRespCache: () => _dialogsResponseCache,
+    setDialogsRespCache: (v) => { _dialogsResponseCache = v; },
+    getDialogsNamesState: () => _dialogsNameCache,
+    setDialogsNamesState: (v) => { _dialogsNameCache = v; },
+    getDialogsTypeMap: () => _dialogsTypeCache,
+    setDialogsTypeMap: (v) => { _dialogsTypeCache = v; },
+}));
+
+// ====== Downloads routes — mounted via createDownloadsRouter ================
+app.use(createDownloadsRouter({
+    configPath: CONFIG_PATH,
+    downloadsDir: DOWNLOADS_DIR,
+    photosDir: PHOTOS_DIR,
+    broadcast,
+    getJobTracker: (k) => _jobTrackers[k],
+    getDialogsNameCache: async () => _dialogsNameCache.byId,
+    bestGroupName,
+    dialogsTypeFor,
+    safeResolveDownload,
+    formatBytes,
+}));
+
+// ====== Backup routes — mounted via createBackupRouter =====================
+app.use(createBackupRouter({ log }));
+
+// ====== AI routes — mounted via createAiRouter =============================
+app.use(createAiRouter({ loadConfig, getJobTracker: (k) => _jobTrackers[k], broadcast, log }));
+
+// ====== Share-link admin API ===============================================
+app.use(createShareRouter({ log }));
+
+// ====== Maintenance routes — mounted via createMaintenanceRouter ============
+app.use(createMaintenanceRouter({
+    configPath: CONFIG_PATH,
+    downloadsDir: DOWNLOADS_DIR,
+    photosDir: PHOTOS_DIR,
+    logsDir: LOGS_DIR,
+    sessionsDir: SESSIONS_DIR,
+    getAccountManager,
+    runtime,
+    loadConfig,
+    readConfigSafe,
+    writeConfigAtomic,
+    broadcast,
+    log,
+    resolveEntityAcrossAccounts,
+    downloadProfilePhoto,
+    resetDialogsCaches: () => {
+        _dialogsResponseCache = { at: 0, body: null };
+        _dialogsNameCache = { at: 0, byId: new Map() };
+    },
+    clearEntityCache: () => { try { entityCache.clear(); } catch {} },
+    getSecureSession: () => _secureSession,
+    getJobTracker: (k) => _jobTrackers[k],
+    getGroupPurgeTracker: (groupId) => _groupPurgeTracker(groupId),
+    getLogBuffer: () => _logBuffer,
+}));
+
+// ====== Config + rescue stats routes — mounted via createConfigRouter ========
+app.use(createConfigRouter({
+    configPath: CONFIG_PATH,
+    broadcast,
+    invalidateConfigCache,
+    invalidateShareConfigCache: _invalidateShareConfigCache,
+    refreshShareLimiter: _refreshShareLimiter,
+    refreshRateLimitConfig,
+    resetAccountManager: async () => {
+        if (_accountManager) {
+            try { await _accountManager.disconnectAll(); } catch {}
+            _accountManager = null;
+        }
+    },
+}));
+
+async function safeResolveDownload(userPath) {
+    if (typeof userPath !== 'string' || userPath.length === 0) return { ok: false, reason: 'forbidden' };
+    if (userPath.includes('\0')) return { ok: false, reason: 'forbidden' };
+    let normalized = path.normalize(userPath);
+    // Tolerate the legacy `data/downloads/` prefix that was sneaking
+    // into queue-history entries + some DB rows because downloader's
+    // `buildPath()` defaulted to `'./data/downloads'` (relative form
+    // was being stored verbatim instead of always-stripped). Without
+    // this fix, the second `path.join(DOWNLOADS_DIR, …)` below would
+    // double the prefix → `<root>/data/downloads/data/downloads/<…>`
+    // → 404 for every cached preview link the SPA rendered.
+    const dataDownloadsPrefix = 'data' + path.sep + 'downloads' + path.sep;
+    while (normalized.startsWith(dataDownloadsPrefix)) {
+        normalized = normalized.slice(dataDownloadsPrefix.length);
+    }
+    // Defensive: also strip the POSIX form when running on Windows
+    // (path.normalize keeps forward slashes if they're already there
+    // because that's what came over the URL).
+    while (normalized.startsWith('data/downloads/')) {
+        normalized = normalized.slice('data/downloads/'.length);
+    }
+    if (path.isAbsolute(normalized)) return { ok: false, reason: 'forbidden' };
+    if (normalized.split(path.sep).includes('..')) return { ok: false, reason: 'forbidden' };
+    const candidate = path.join(DOWNLOADS_DIR, normalized);
+    const rootReal = await fs.realpath(DOWNLOADS_DIR).catch(() => path.resolve(DOWNLOADS_DIR));
+    let real;
+    try { real = await fs.realpath(candidate); }
+    catch (e) {
+        // ENOENT → genuinely missing (deleted / never written / DB drift).
+        // Tell the caller so the route can return 404 instead of a
+        // misleading 403 that makes users think it's a permission bug.
+        return { ok: false, reason: e.code === 'ENOENT' ? 'missing' : 'forbidden' };
+    }
+    if (!real.startsWith(rootReal + path.sep) && real !== rootReal) {
+        return { ok: false, reason: 'forbidden' };
+    }
+    return { ok: true, real };
+}
+
+// ============ FILE SERVING ============
+// Serve files from data/downloads. Uses safeResolveDownload to reject path
+// traversal, NUL bytes, and symlink escapes. Adds Content-Disposition so a
+// rogue HTML file can't be rendered inline (the browser still inlines images
+// and videos via the explicit ?inline=1 query parameter the SPA passes).
+app.use('/files', async (req, res, next) => {
+    try {
+        let reqPath;
+        try { reqPath = decodeURIComponent(req.path).replace(/^\//, ''); }
+        catch { return res.status(400).send('Bad request'); }
+        if (!reqPath) return next();
+        if (reqPath.includes('\0')) return res.status(400).send('Bad request');
+
+        const r = await safeResolveDownload(reqPath);
+        if (!r.ok) {
+            // Distinguish "genuinely missing" from "blocked for safety" so
+            // users see "File not found" instead of a misleading "Forbidden"
+            // when a file was rotated/deleted but the DB row lingered.
+            const status = r.reason === 'missing' ? 404 : 403;
+            // Auto-prune the DB row for genuinely-missing files so the
+            // gallery stops listing them on next refresh. STRICT match on
+            // file_path only — matching by file_name was unsafe because
+            // two groups can hold files with the same timestamp-based
+            // basename, and a 404 on one would mass-delete the other's
+            // rows. Done in the background so the HTTP response isn't
+            // blocked by the DB write.
+            if (r.reason === 'missing') {
+                queueMicrotask(() => {
+                    try {
+                        const fwd = reqPath.replace(/\\/g, '/');
+                        const bwd = fwd.replace(/\//g, '\\');
+                        const db = getDb();
+                        const result = db.prepare(
+                            `DELETE FROM downloads WHERE file_path = ? OR file_path = ?`
+                        ).run(fwd, bwd);
+                        if (result.changes > 0) {
+                            broadcast({ type: 'file_deleted', path: fwd, autoPruned: true });
+                        }
+                    } catch { /* never let a stray request crash the server */ }
+                });
+            }
+            return res.status(status).send(r.reason === 'missing' ? 'File not found' : 'Forbidden');
+        }
+
+        const inline = req.query.inline === '1';
+        const baseName = path.basename(r.real);
+        // Quote-safe filename (RFC 6266 fallback handled by encodeURIComponent).
+        const dispKind = inline ? 'inline' : 'attachment';
+        res.setHeader(
+            'Content-Disposition',
+            `${dispKind}; filename*=UTF-8''${encodeURIComponent(baseName)}`
+        );
+
+        // HEIC / HEIF inline view — browsers don't render the format
+        // natively (Safari excepted, and even there only on iOS / macOS).
+        // For inline requests we transcode on the fly to JPEG via sharp's
+        // built-in libheif (compiled into the prebuilt sharp binary), and
+        // cache the result so the second open is a static stream. Disk
+        // download (`?inline=1` absent) keeps the original .heic bytes.
+        const heicExt = path.extname(r.real).toLowerCase();
+        if (inline && (heicExt === '.heic' || heicExt === '.heif')) {
+            try {
+                const cachePath = await _heicInlineCache(r.real);
+                res.setHeader('Content-Type', 'image/jpeg');
+                res.setHeader('Cache-Control', 'private, max-age=86400');
+                return res.sendFile(cachePath);
+            } catch (e) {
+                console.warn('[heic] inline transcode failed:', baseName, e?.message || e);
+                // Fall through to raw .heic — Safari users still get the file.
+            }
+        }
+        res.sendFile(r.real);
+    } catch (e) {
+        next();
+    }
+});
+
+// HEIC inline cache — a single transcoded JPEG per source file. Keyed by
+// (path, mtime) so an edited / replaced .heic re-renders. Cache directory
+// is the same one thumbs.js owns, namespaced under heic-cache/ so the
+// thumb purge button doesn't sweep these mid-view.
+const _HEIC_CACHE_DIR = path.join(DATA_DIR, 'thumbs', 'heic-cache');
+async function _heicInlineCache(srcAbs) {
+    await fs.mkdir(_HEIC_CACHE_DIR, { recursive: true });
+    const st = await fs.stat(srcAbs);
+    const key = crypto.createHash('sha1').update(`${srcAbs}\0${st.mtimeMs}`).digest('hex');
+    const dst = path.join(_HEIC_CACHE_DIR, `${key}.jpg`);
+    if (existsSync(dst)) return dst;
+    // Rotate honors EXIF orientation; quality 85 / progressive trades a
+    // little CPU for visibly nicer rendering vs the default 80.
+    const sharp = (await import('sharp')).default;
+    await sharp(srcAbs, { failOn: 'none' })
+        .rotate()
+        .jpeg({ quality: 85, progressive: true })
+        .toFile(dst);
+    return dst;
+}
+
+
+// ============ TELEGRAM CONNECTION ============
+
+const _secureSession = new SecureSession(SESSION_PASSWORD);
+async function loadSession() {
+    try {
+        if (existsSync(SESSION_PATH)) {
+            const encryptedStr = await fs.readFile(SESSION_PATH, 'utf8');
+            const encrypted = JSON.parse(encryptedStr);
+            return _secureSession.decrypt(encrypted);
+        }
+    } catch (e) {
+        console.log('Could not load session:', e.message);
+    }
+    return '';
+}
+
+async function connectTelegram() {
+    if (telegramClient && isConnected) return telegramClient;
+    // Quiet, configuration-aware: no creds → no work, no scary warning.
+    let config;
+    try { config = JSON.parse(await fs.readFile(CONFIG_PATH, 'utf8')); }
+    catch (e) {
+        if (e.code !== 'ENOENT') console.log('⚠️ Could not read config.json:', e.message);
+        return null;
+    }
+    if (!config.telegram?.apiId || !config.telegram?.apiHash) return null;
+
+    try {
+        const sessionString = await loadSession();
+        if (!sessionString) return null;
+        const stringSession = new StringSession(sessionString);
+        telegramClient = new TelegramClient(stringSession, parseInt(config.telegram.apiId), config.telegram.apiHash, { connectionRetries: 3, useWSS: false });
+        telegramClient.setLogLevel('none');
+        await telegramClient.connect();
+        if (await telegramClient.isUserAuthorized()) {
+            isConnected = true;
+            console.log('✅ Telegram connected (legacy single-session client; AccountManager is the canonical source)');
+            return telegramClient;
+        }
+    } catch (error) {
+        console.log('⚠️ Telegram connect attempt failed:', error.message);
+    }
+    return null;
+}
+
+// Entity & Photo Helpers — stores `{ entity, client, at }` (NOT bare entity).
+// Previous version stored `e` on insert but returned `{entity, client}` on
+// cache miss; subsequent cache-hit returns lacked the wrapper, so callers
+// reading `.entity` got `undefined` after the first lookup. Bounded by TTL +
+// hard cap so a long-running process doesn't grow this Map without bound.
+const entityCache = new Map();
+const ENTITY_CACHE_TTL_MS = 30 * 60 * 1000;
+const ENTITY_CACHE_MAX = 5000;
+
+/** Walk every loaded account looking for one that can resolve `idStr`. */
+async function resolveEntityAcrossAccounts(idStr) {
+    const cached = entityCache.get(idStr);
+    if (cached && (Date.now() - cached.at) < ENTITY_CACHE_TTL_MS) {
+        return { entity: cached.entity, client: cached.client };
+    }
+
+    let am;
+    try { am = await getAccountManager(); } catch { am = null; }
+    const candidates = [];
+    if (am) for (const [, c] of am.clients) candidates.push(c);
+    // Legacy single-session client as last resort.
+    const legacy = await connectTelegram();
+    if (legacy && !candidates.includes(legacy)) candidates.push(legacy);
+
+    const cacheHit = (e, c) => {
+        // Hard-cap the cache by evicting the oldest entry on overflow.
+        if (entityCache.size >= ENTITY_CACHE_MAX) {
+            const firstKey = entityCache.keys().next().value;
+            if (firstKey !== undefined) entityCache.delete(firstKey);
+        }
+        entityCache.set(idStr, { entity: e, client: c, at: Date.now() });
+        return { entity: e, client: c };
+    };
+
+    for (const c of candidates) {
+        try {
+            const e = await c.getEntity(idStr);
+            if (e) return cacheHit(e, c);
+        } catch {}
+        try {
+            const e = await c.getEntity(BigInt(idStr));
+            if (e) return cacheHit(e, c);
+        } catch {}
+    }
+    return null;
+}
+
+async function downloadProfilePhoto(groupId) {
+    const idStr = String(groupId);
+    const photoPath = path.join(PHOTOS_DIR, `${idStr}.jpg`);
+    if (existsSync(photoPath)) return `/photos/${idStr}.jpg`;
+
+    const resolved = await resolveEntityAcrossAccounts(idStr);
+    if (!resolved) return null;
+    const { entity, client } = resolved;
+    try {
+        if (entity?.photo) {
+            const buffer = await client.downloadProfilePhoto(entity, { isBig: false });
+            if (buffer) {
+                await fs.writeFile(photoPath, buffer);
+                return `/photos/${idStr}.jpg`;
+            }
+        }
+    } catch (e) {
+        console.log(`Error processing ${idStr}:`, e.message);
+    }
+    return null;
+}
+
+// ============ SERVER START ============
+
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function broadcast(data) {
+    const message = JSON.stringify(data);
+    clients.forEach(client => {
+        if (client.readyState === 1) client.send(message);
+    });
+}
+
+// ---- In-memory log ring + WS stream ---------------------------------------
+//
+// Keeps the last LOG_BUFFER_SIZE structured log entries so the
+// /maintenance/logs page can render history on first paint instead of
+// waiting for live events. Each entry is also broadcast over WS as a
+// `log` message — admin clients hold an open socket and tail in real time.
+//
+// Each entry: { ts:number(ms), source:string, level:'info'|'warn'|'error', msg:string }
+//
+// The buffer is bounded so a chatty failure mode (e.g. an integrity sweep
+// looping on a missing file) can't grow it without limit.
+const LOG_BUFFER_SIZE = 1000;
+const _logBuffer = [];
+
+function log({ source = 'app', level = 'info', msg = '' }) {
+    const entry = { ts: Date.now(), source, level, msg: String(msg).slice(0, 4000) };
+    _logBuffer.push(entry);
+    if (_logBuffer.length > LOG_BUFFER_SIZE) _logBuffer.shift();
+    try { broadcast({ type: 'log', ...entry }); } catch {}
+    // Mirror to stdout/stderr so the docker logs / journald path keeps
+    // working — the web view is additive, not a replacement.
+    const line = `[${new Date(entry.ts).toISOString()}] [${source}] [${level}] ${entry.msg}`;
+    if (level === 'error') console.error(line);
+    else if (level === 'warn') console.warn(line);
+    else console.log(line);
+}
+
+// ---- Shared job-tracker registry -----------------------------------------
+//
+// One tracker per logical job kind. Defined here so they have access to
+// the closures over `broadcast` and `log` declared above. The set is
+// referenced from Maintenance + Groups endpoints further up the file.
+//
+// Per-group purge is keyed dynamically because multi-flight is OK
+// across distinct groups (purging chat A and chat B in parallel doesn't
+// conflict). Single-flight is enforced per group id.
+const _jobTrackers = {
+    filesVerify:        createJobTracker({ kind: 'filesVerify',        broadcast, log, eventPrefix: 'files_verify' }),
+    dbVacuum:           createJobTracker({ kind: 'dbVacuum',           broadcast, log, eventPrefix: 'db_vacuum' }),
+    dbIntegrity:        createJobTracker({ kind: 'dbIntegrity',        broadcast, log, eventPrefix: 'db_integrity' }),
+    restartMonitor:     createJobTracker({ kind: 'restartMonitor',     broadcast, log, eventPrefix: 'restart_monitor' }),
+    resyncDialogs:      createJobTracker({ kind: 'resyncDialogs',      broadcast, log, eventPrefix: 'resync_dialogs' }),
+    dedupDelete:        createJobTracker({ kind: 'dedupDelete',        broadcast, log, eventPrefix: 'dedup_delete' }),
+    nsfwBulk:           createJobTracker({ kind: 'nsfwBulk',           broadcast, log, eventPrefix: 'nsfw_bulk' }),
+    thumbsRebuild:      createJobTracker({ kind: 'thumbsRebuild',      broadcast, log, eventPrefix: 'thumbs_rebuild' }),
+    autoUpdate:         createJobTracker({ kind: 'autoUpdate',         broadcast, log, eventPrefix: 'update' }),
+    groupsRefreshInfo:  createJobTracker({ kind: 'groupsRefreshInfo',  broadcast, log, eventPrefix: 'groups_refresh_info' }),
+    groupsRefreshPhotos:createJobTracker({ kind: 'groupsRefreshPhotos',broadcast, log, eventPrefix: 'groups_refresh_photos' }),
+    purgeAll:           createJobTracker({ kind: 'purgeAll',           broadcast, log, eventPrefix: 'purge_all' }),
+    // AI subsystem (v2.6.0) — one tracker per long-running scan kind.
+    aiIndex:            createJobTracker({ kind: 'aiIndex',            broadcast, log, eventPrefix: 'ai_index' }),
+    aiPeople:           createJobTracker({ kind: 'aiPeople',           broadcast, log, eventPrefix: 'ai_people' }),
+    aiPhash:            createJobTracker({ kind: 'aiPhash',            broadcast, log, eventPrefix: 'ai_phash' }),
+    aiTags:             createJobTracker({ kind: 'aiTags',             broadcast, log, eventPrefix: 'ai_tags' }),
+};
+// One tracker per group id for `/api/groups/:id/purge`. Lazily created
+// because we don't know the group ids in advance, and a group that's
+// finished its purge can be GC'd from this map. Keep last 32 to bound.
+const _groupPurgeTrackers = new Map();
+function _groupPurgeTracker(groupId) {
+    const k = `groupPurge:${groupId}`;
+    if (!_groupPurgeTrackers.has(k)) {
+        if (_groupPurgeTrackers.size >= 32) {
+            // Evict the oldest non-running tracker.
+            for (const [oldKey, t] of _groupPurgeTrackers) {
+                if (!t.isRunning()) { _groupPurgeTrackers.delete(oldKey); break; }
+            }
+        }
+        _groupPurgeTrackers.set(k, createJobTracker({
+            kind: k, broadcast, log, eventPrefix: 'group_purge',
+        }));
+    }
+    return _groupPurgeTrackers.get(k);
+}
+
+
+wss.on('connection', (ws) => {
+    clients.add(ws);
+    ws.on('close', () => clients.delete(ws));
+});
+
+// Last-resort handler — converts any throw or rejected promise that
+// escaped a route into a JSON 500 instead of leaving the response open
+// until the reverse proxy times out (manifests as 502 to the client).
+// Must be registered after all routes/middleware and before listen().
+app.use((err, req, res, _next) => {
+    if (res.headersSent) return;
+    log({
+        source: 'http',
+        level: 'error',
+        msg: `${req.method} ${req.url} → ${err?.stack || err?.message || err}`,
+    });
+    res.status(500).json({ error: err?.message || 'Internal Server Error' });
+});
+
+const PORT = process.env.PORT || 3000;
+// Without this, EADDRINUSE made the container exit silently with no clue
+// where to look. Print a clear message + exit non-zero so docker-compose
+// surfaces the failure instead of looping a hidden restart.
+server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+        console.error(`\n[fatal] Port ${PORT} is already in use. Stop the other process or set PORT=<free> in the environment.\n`);
+    } else {
+        console.error('[fatal] HTTP server error:', e?.message || e);
+    }
+    process.exit(1);
+});
+server.listen(PORT, async () => {
+    // Backfill group names for existing records
+    try {
+        const config = JSON.parse(fsSync.readFileSync(CONFIG_PATH, 'utf8'));
+        const updated = backfillGroupNames(config.groups || []);
+        if (updated > 0) console.log(`📝 Backfilled group names for ${updated} records`);
+    } catch (e) { /* config not ready yet */ }
+
+    // Friendly boot banner. Tells the user where to go and what state we're
+    // in (configured vs first-run) instead of dumping a generic header.
+    let cfgState = 'first-run';
+    try {
+        const cfg = JSON.parse(fsSync.readFileSync(CONFIG_PATH, 'utf8'));
+        if (isAuthConfigured(cfg.web)) cfgState = 'ready';
+        else if (cfg.telegram?.apiId) cfgState = 'needs-password';
+    } catch { /* no config → first-run */ }
+
+    let appVersion = process.env.npm_package_version;
+    if (!appVersion) {
+        try {
+            appVersion = JSON.parse(fsSync.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')).version;
+        } catch { appVersion = '?'; }
+    }
+    const url = `http://localhost:${PORT}`;
+    const tip = cfgState === 'first-run'
+        ? `   First run? Open ${url} from this machine to set up the dashboard password.`
+        : cfgState === 'needs-password'
+            ? `   Open ${url} and run \`npm run auth\` to set the dashboard password.`
+            : `   Sign in at ${url}`;
+    console.log(`
+🌐  Telegram Downloader   v${appVersion}
+    Dashboard: ${url}
+${tip}
+`);
+    // Try to bring up the legacy client in the background — if there are no
+    // credentials yet, this is a silent no-op (see connectTelegram). The
+    // AccountManager-driven path covers everything else lazily.
+    connectTelegram().catch(() => {});
+
+    // Boot the disk rotator. No-op when diskManagement.enabled is false —
+    // safe to call at every startup. Restarts via POST /api/config (above).
+    // The `getActiveFilePaths` accessor lets the rotator skip any file the
+    // downloader is currently writing — without this, a sweep firing during
+    // a slow large download would unlink the .part out from under it,
+    // producing the "Downloaded file is empty (0 bytes)" failures we kept
+    // seeing in the wild.
+    try {
+        const rotator = getDiskRotator({
+            loadConfig,
+            broadcast,
+            getActiveFilePaths: () => runtime?._downloader?._activeFilePaths || null,
+        });
+        rotator.start();
+    } catch (e) {
+        console.warn('[disk-rotator] start failed:', e.message);
+    }
+
+    // Periodic integrity sweep — walks every DB row, drops the ones whose
+    // file is missing or zero-bytes. Self-heals after a manual delete, an
+    // auto-rotator pass, a crash mid-write, or a partial volume restore.
+    // 30 s after boot for the first pass, then every advanced.integrity.intervalMin
+    // minutes (default 60) with stat() concurrency advanced.integrity.batchSize
+    // (default 64).
+    try {
+        const cfg = loadConfig();
+        const ai = cfg?.advanced?.integrity || {};
+        integrity.start({
+            broadcast,
+            intervalMin: Number(ai.intervalMin) > 0 ? Number(ai.intervalMin) : 60,
+            batchSize:   Number(ai.batchSize)   > 0 ? Number(ai.batchSize)   : 64,
+        });
+    } catch (e) {
+        console.warn('[integrity] start failed:', e.message);
+    }
+
+    // Boot the rescue sweeper. Always armed — even when cfg.rescue.enabled
+    // is false, individual groups can opt in via rescueMode='on'. Refreshed
+    // on POST /api/config when the body carries a `rescue` block (above).
+    try {
+        const sweeper = getRescueSweeper({ loadConfig, broadcast });
+        sweeper.start();
+    } catch (e) {
+        console.warn('[rescue] start failed:', e.message);
+    }
+
+    // Backup subsystem — multi-provider mirror + snapshot worker. The
+    // manager hooks the runtime's download_complete event so newly-arrived
+    // files fan out to every enabled mirror destination automatically.
+    // Any persisted destination from a previous boot has its worker
+    // restarted (and stuck `uploading` rows reset to `pending`) inside
+    // backup.init().
+    try {
+        backup.init({
+            broadcast,
+            log,
+            getShareSecret: () => {
+                try {
+                    const cfg = JSON.parse(fsSync.readFileSync(CONFIG_PATH, 'utf8'));
+                    return cfg?.web?.shareSecret || null;
+                } catch { return null; }
+            },
+            runtime,
+        });
+    } catch (e) {
+        console.warn('[backup] init failed:', e.message);
+    }
+
+    // Pre-fetch the NSFW classifier in the background when the operator
+    // has enabled both `advanced.nsfw.enabled` and `advanced.nsfw.preload`.
+    // Fire-and-forget — boot is never blocked by the model download.
+    try {
+        const nsfwCfgRaw = loadConfig().advanced?.nsfw || {};
+        if (nsfwCfgRaw.enabled === true && nsfwCfgRaw.preload === true) {
+            const nsfwBootCfg = { ...NSFW_DEFAULTS, ...nsfwCfgRaw, enabled: true };
+            nsfwPreloadClassifier(nsfwBootCfg,
+                (p) => { try { broadcast({ type: 'nsfw_model_downloading', ...p }); } catch {} },
+                (entry) => log(entry),
+            ).catch(() => { /* errors land in the realtime log via onLog */ });
+        }
+    } catch (e) {
+        console.warn('[nsfw] preload-on-boot skipped:', e.message);
+    }
+
+    // Resolve group names from Telegram for any DB records still unnamed
+    await resolveGroupNamesFromTelegram();
+
+    // Auto-start the realtime monitor on container boot when at least one
+    // group is enabled and at least one Telegram account is loaded. Lets
+    // `docker compose up -d` boot a ready-to-monitor instance without a
+    // manual click on Settings → Engine → Start. Opt out via
+    // `monitor.autoStart: false` in config.json.
+    try {
+        const cfg = loadConfig();
+        const autoStart = cfg.monitor?.autoStart !== false;
+        const enabled = Array.isArray(cfg.groups) && cfg.groups.some(g => g?.enabled !== false);
+        if (autoStart && enabled) {
+            const am = await getAccountManager().catch(() => null);
+            if (am && am.count > 0) {
+                await runtime.start({ config: cfg, accountManager: am });
+                console.log('[monitor] auto-started on boot');
+            }
+        }
+    } catch (e) {
+        console.warn('[monitor] auto-start skipped:', e.message);
+    }
+});
+
+// Graceful shutdown — Docker / systemd / Ctrl-C send SIGTERM/SIGINT and
+// expect the process to exit fast. Without this we just relied on
+// `.unref()` on background timers and an OS kill timeout (10 s default
+// in Docker), which made `docker compose restart` feel sluggish and
+// left WS clients with abrupt connection drops. The 5 s hard-exit
+// safety net catches any handle that refuses to release.
+let _shuttingDown = false;
+async function gracefulShutdown(signal) {
+    if (_shuttingDown) return;
+    _shuttingDown = true;
+    console.log(`\n[shutdown] ${signal} received — cleaning up…`);
+
+    // Stop background sweepers first so their setInterval callbacks
+    // don't try to write to a closing DB / broadcast to dead clients.
+    try { integrity.stop?.(); } catch (e) { console.warn('[shutdown] integrity.stop:', e.message); }
+    try { getRescueSweeper()?.stop(); } catch (e) { console.warn('[shutdown] rescue.stop:', e.message); }
+    try { getDiskRotator()?.stop(); } catch (e) { console.warn('[shutdown] rotator.stop:', e.message); }
+
+    // Stop the monitor + its keep-alive ping.
+    try { if (runtime?.state === 'running') await runtime.stop(); } catch (e) { console.warn('[shutdown] runtime.stop:', e.message); }
+    try { _accountManager?.stopKeepAlive?.(); } catch (e) { console.warn('[shutdown] keep-alive.stop:', e.message); }
+
+    // Close every WebSocket so browsers see a clean close-frame instead
+    // of a TCP RST and don't spam reconnect attempts during the bounce.
+    try {
+        for (const c of clients) {
+            try { c.close(1001, 'server shutting down'); } catch {}
+        }
+    } catch {}
+
+    // Stop accepting new HTTP connections; let the in-flight ones drain.
+    try { server.close(() => process.exit(0)); } catch { process.exit(0); }
+
+    // Hard exit if anything refuses to release within 5 s. Anything we
+    // hadn't accounted for would otherwise hang the container teardown.
+    setTimeout(() => {
+        console.warn('[shutdown] forced exit (timed out waiting for handles)');
+        process.exit(0);
+    }, 5_000).unref?.();
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+/**
+ * Resolve group names from Telegram API for DB records with NULL or default group_name.
+ * Strategy: 1) fetch dialogs and match by normalized ID, 2) fallback to getEntity for unmatched.
+ * Also fixes config.json entries with generic names.
+ */
+async function resolveGroupNamesFromTelegram() {
+    if (!telegramClient || !isConnected) return;
+    try {
+        // Collect all IDs that need fixing (from config)
+        let config;
+        try {
+            config = JSON.parse(await fs.readFile(CONFIG_PATH, 'utf8'));
+        } catch {
+            config = { groups: [] };
+        }
+        const configUnknowns = (config.groups || []).filter(g => !g.name || g.name.startsWith('Group '));
+
+        // Also check DB
+        const db = getDb();
+        const dbUnknowns = db.prepare(`SELECT DISTINCT group_id FROM downloads WHERE group_name IS NULL OR group_name LIKE 'Group %'`).all();
+
+        if (dbUnknowns.length === 0 && configUnknowns.length === 0) return;
+
+        // Collect all unique IDs that need resolution
+        const needIds = new Set();
+        configUnknowns.forEach(g => needIds.add(String(g.id)));
+        dbUnknowns.forEach(r => needIds.add(r.group_id));
+
+        console.log(`🔍 Resolving names for ${needIds.size} groups: ${[...needIds].join(', ')}`);
+
+        // Strategy 1: Fetch dialogs and build lookup
+        const resolvedNames = new Map(); // raw ID string -> resolved name
+        try {
+            const dialogs = await telegramClient.getDialogs({ limit: 500 });
+            const normalize = (id) => String(id).replace(/^-100/, '').replace(/^-/, '');
+            
+            for (const rawId of needIds) {
+                const nid = normalize(rawId);
+                for (const d of dialogs) {
+                    const dnid = normalize(d.id);
+                    if (dnid === nid) {
+                        const title = d.title || d.name;
+                        if (title) {
+                            resolvedNames.set(rawId, title);
+                            console.log(`  📌 Dialog match: ${rawId} → "${title}"`);
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch (e) {
+            console.log(`  ⚠️ getDialogs failed: ${e.message}`);
+        }
+
+        // Strategy 2: For unresolved, try getEntity directly
+        for (const rawId of needIds) {
+            if (resolvedNames.has(rawId)) continue;
+            
+            // Try multiple ID formats
+            const candidates = [
+                Number(rawId),
+                BigInt(rawId),
+            ];
+            // If it starts with -, also try -100 prefix variant
+            if (rawId.startsWith('-') && !rawId.startsWith('-100')) {
+                candidates.push(Number('-100' + rawId.slice(1)));
+                candidates.push(BigInt('-100' + rawId.slice(1)));
+            }
+
+            for (const tryId of candidates) {
+                try {
+                    const entity = await telegramClient.getEntity(tryId);
+                    if (entity) {
+                        const title = entity.title || entity.firstName || entity.username;
+                        if (title) {
+                            resolvedNames.set(rawId, title);
+                            console.log(`  📌 Entity match: ${rawId} → "${title}"`);
+                            break;
+                        }
+                    }
+                } catch { /* try next format */ }
+            }
+        }
+
+        // Apply fixes to DB
+        let dbResolved = 0;
+        const stmt = db.prepare(`UPDATE downloads SET group_name = ? WHERE group_id = ? AND (group_name IS NULL OR group_name LIKE 'Group %')`);
+        for (const row of dbUnknowns) {
+            const name = resolvedNames.get(row.group_id);
+            if (name) {
+                stmt.run(name, row.group_id);
+                dbResolved++;
+            }
+        }
+
+        // Apply fixes to config
+        let configChanged = false;
+        let configResolved = 0;
+        for (const g of configUnknowns) {
+            const name = resolvedNames.get(String(g.id));
+            if (name) {
+                g.name = name;
+                configChanged = true;
+                configResolved++;
+            }
+        }
+        if (configChanged) {
+            await writeConfigAtomic(config);
+        }
+
+        const total = resolvedNames.size;
+        const failed = needIds.size - total;
+        if (total > 0) console.log(`✅ Resolved ${total} group names (${dbResolved} DB, ${configResolved} config)`);
+        if (failed > 0) console.log(`⚠️  ${failed} groups could not be resolved (may have left the group)`);
+    } catch (e) {
+        console.log('⚠️ Could not resolve group names:', e.message);
+    }
+}
+
+export { broadcast };
