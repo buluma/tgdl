@@ -136,7 +136,7 @@ export class HistoryDownloader extends EventEmitter {
         this.emit('log', '🛑 Backfill cancellation requested');
     }
 
-    async downloadHistory(groupId, options = {}) {
+    async downloadHistory(groupId: any, options: any = {}) {
         this.running = true;
         this.cancelFlag = false;
         this.stats = { processed: 0, downloaded: 0, skipped: 0, urls: 0 };

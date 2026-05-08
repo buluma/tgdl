@@ -217,7 +217,7 @@ let _ttlDefault = TTL_DEFAULT_SEC_DEFAULT;
  *
  * @param {{ ttlMinSec?: number, ttlMaxSec?: number, ttlDefaultSec?: number }} cfg
  */
-export function applyShareLimits(cfg = {}) {
+export function applyShareLimits(cfg: any = {}) {
     const minIn = Number(cfg.ttlMinSec);
     const maxIn = Number(cfg.ttlMaxSec);
     const defIn = Number(cfg.ttlDefaultSec);

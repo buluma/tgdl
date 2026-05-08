@@ -46,7 +46,7 @@ const PROGRESS_LOG_INTERVAL_MS = 5000;
  * @param {string} [opts.eventPrefix] Override WS event prefix (default = kind).
  *                                    Emits `${prefix}_progress` / `${prefix}_done`.
  */
-export function createJobTracker({ kind, broadcast, log, eventPrefix } = {}) {
+export function createJobTracker({ kind, broadcast, log, eventPrefix }: any = {}) {
     if (!kind) throw new Error('createJobTracker: kind is required');
     const _broadcast = typeof broadcast === 'function' ? broadcast : () => {};
     const _log = typeof log === 'function' ? log : () => {};

@@ -89,7 +89,7 @@ export function claim(destinationId, now = Date.now()) {
  * @param {number} [meta.bytes]      bytes uploaded
  * @param {string} [meta.remotePath] final remote path (overrides claim-time value)
  */
-export function markDone(jobId, meta = {}) {
+export function markDone(jobId: any, meta: any = {}) {
     const r = getDb().prepare(`
         UPDATE backup_jobs
            SET status = 'done',

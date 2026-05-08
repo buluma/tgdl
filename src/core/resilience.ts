@@ -7,6 +7,9 @@
 import { colorize } from '../cli/colors.js';
 
 export class Resilience {
+    errorLog: any[];
+    notifier: any;
+
     constructor() {
         this.errorLog = [];
         this.notifier = null;

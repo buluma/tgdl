@@ -1,4 +1,3 @@
-// @ts-nocheck
 import Database, { type Database as DatabaseType } from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -52,7 +51,7 @@ const DB_PATH = path.join(DATA_DIR, 'db.sqlite');
 // Singleton connection
 let db;
 
-export function getDb(): DatabaseType {
+export function getDb(): any {
     if (db) return db;
 
     if (!fs.existsSync(DATA_DIR)) {
@@ -550,7 +549,7 @@ export function getMessageIdRange(groupId) {
  * infinite-scroll across the full library (previous All-Media path was
  * capped at 20 groups × 20 files = ~400 max — see v2.3.6 blocker).
  */
-export function getAllDownloads(limit = 50, offset = 0, type = 'all', opts: GetAllDownloadsOpts = {}) {
+export function getAllDownloads(limit: any = 50, offset: any = 0, type = 'all', opts: GetAllDownloadsOpts = {}) {
     const lim = Math.max(1, Math.min(500, parseInt(limit, 10) || 50));
     const off = Math.max(0, parseInt(offset, 10) || 0);
     const typeMap = { images: 'photo', videos: 'video', documents: 'document', audio: 'audio' };
@@ -638,7 +637,7 @@ export function getDownloads(groupId: string | number, limit = 50, offset = 0, t
  * @param {number} [opts.offset=0]
  * @param {string} [opts.groupId]  optional restrict to one group
  */
-export function searchDownloads(query, opts = {}) {
+export function searchDownloads(query: any, opts: any = {}) {
     const limit = Math.max(1, Math.min(500, parseInt(opts.limit, 10) || 50));
     const offset = Math.max(0, parseInt(opts.offset, 10) || 0);
     const q = `%${String(query || '').trim()}%`;
@@ -719,7 +718,7 @@ export function getTotalSizeBytes() {
  * The rotator pulls from this list and deletes file + row until the cap is
  * back under the limit.
  */
-export function getOldestDownloads(count = 50) {
+export function getOldestDownloads(count: any = 50) {
     const limit = Math.max(1, Math.min(10000, parseInt(count, 10) || 50));
     return getDb()
         .prepare(`
@@ -1105,7 +1104,7 @@ export function getNsfwIdsByTier({
     includeWhitelisted = false,
     scoreMin = null,
     scoreMax = null,
-} = {}) {
+}: any = {}) {
     const types = Array.isArray(fileTypes) && fileTypes.length ? fileTypes : ['photo'];
     const placeholders = types.map(() => '?').join(',');
     const where = [`file_type IN (${placeholders})`, 'nsfw_score IS NOT NULL'];

@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Backup manager — owns destinations, queue workers, snapshot cron,
 // passphrase cache, and the WS broadcast surface.
 //
@@ -53,9 +52,9 @@ const DEFAULT_WORKERS_PER_DEST = Number(process.env.BACKUP_WORKERS_PER_DEST) > 0
 
 const events = new EventEmitter();
 
-let _broadcast = () => {};
+let _broadcast: (msg: any) => void = () => {};
 let _log: (msg: any) => void = () => {};
-let _getShareSecret = () => null;
+let _getShareSecret: () => any = () => null;
 
 const _workers = new Map();             // destinationId → Worker
 const _passphraseCache = new Map();     // destinationId → Buffer (32-byte key)
@@ -74,7 +73,7 @@ const _snapshotInflight = new Set();    // destinationIds with a snapshot job in
  *                                         download_complete onto its
  *                                         `event` channel for mirror mode
  */
-export function init(deps = {}) {
+export function init(deps: any = {}) {
     if (typeof deps.broadcast === 'function') _broadcast = deps.broadcast;
     if (typeof deps.log === 'function') _log = deps.log;
     if (typeof deps.getShareSecret === 'function') _getShareSecret = deps.getShareSecret;
@@ -166,7 +165,7 @@ export function addDestination(input) {
  * is fully replaced (not merged) and re-encrypted. Boots / kills the
  * worker as the `enabled` flag flips.
  */
-export function updateDestination(id, patch = {}) {
+export function updateDestination(id: any, patch: any = {}) {
     const dest = _loadDestRowOrThrow(id);
     const next = { ...dest };
     if (patch.name != null) next.name = String(patch.name).slice(0, 200);
@@ -223,7 +222,7 @@ export function removeDestination(id) {
  * encrypted blob + every secret-shaped field so the response is safe to
  * ship to the dashboard.
  */
-export function listDestinations({ scrubbed = true } = {}) {
+export function listDestinations({ scrubbed = true }: any = {}) {
     const rows = getDb().prepare(`
         SELECT * FROM backup_destinations ORDER BY id DESC
     `).all();
@@ -329,7 +328,7 @@ export async function testConnection(id) {
  * Toggle encryption on a destination. Requires the operator's passphrase
  * — we derive the AES key + cache it (in memory only, never persisted).
  */
-export function setEncryption(id, { enabled, passphrase }) {
+export function setEncryption(id: any, { enabled, passphrase }: any) {
     const dest = _loadDestRowOrThrow(id);
     if (enabled && !passphrase) throw new Error('passphrase required to enable encryption');
     if (!enabled) {
@@ -835,7 +834,7 @@ async function _writeTarGz(srcDir, archivePath) {
         } else {
             const h = tarHeader({ rel: entry.rel, size: entry.size, mtime: entry.mtime, typeflag: '0' });
             gz.write(h);
-            await new Promise((res, rej) => {
+            await new Promise<void>((res, rej) => {
                 const rs = fs.createReadStream(entry.abs);
                 rs.on('data', (chunk) => gz.write(chunk));
                 rs.on('end', () => {
@@ -920,7 +919,7 @@ function _scrubDest(row) {
     };
 }
 
-function _bumpDestStats(id, bytes, files) {
+function _bumpDestStats(id: any, bytes: any, files: any, _success?: any) {
     getDb().prepare(`
         UPDATE backup_destinations
            SET total_bytes = total_bytes + ?,

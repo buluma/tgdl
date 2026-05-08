@@ -173,7 +173,7 @@ async function _runOneRow(absPath, downloadId, cfg, onLog) {
  * Iterate every unindexed photo, run all enabled capabilities. Returns a
  * summary suitable for the JobTracker's `result` payload.
  */
-export async function runIndexScan(cfg, { onProgress, signal, onLog } = {}) {
+export async function runIndexScan(cfg: any, { onProgress, signal, onLog }: any = {}) {
     const merged = _coerceConfig(cfg);
     if (!merged.enabled) {
         return { skipped: true, reason: 'AI subsystem is disabled' };

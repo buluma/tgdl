@@ -74,7 +74,7 @@ async function hashFile(absPath) {
  *   }>
  * }>}
  */
-export async function findDuplicates(opts = {}) {
+export async function findDuplicates(opts: any = {}) {
     const { onProgress, signal } = opts;
     const db = getDb();
 
