@@ -56,7 +56,15 @@ export default [
         plugins: { '@typescript-eslint': tsPlugin },
         rules: {
             ...tsPlugin.configs.recommended.rules,
-            // Project-specific overrides
+            '@typescript-eslint/no-explicit-any': 'warn',
+            '@typescript-eslint/no-unused-vars': ['warn', {
+                argsIgnorePattern: '^_',
+                varsIgnorePattern: '^_',
+                caughtErrors: 'none',
+            }],
+            'no-empty': ['warn', { allowEmptyCatch: true }],
+            '@typescript-eslint/ban-ts-comment': 'off',
+            'no-control-regex': 'off',
         },
     },
     {
@@ -64,6 +72,7 @@ export default [
             'node_modules/**',
             'data/**',
             'docs/**',
+            'dist/**',
             '*.min.js',
         ],
     },

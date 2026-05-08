@@ -73,7 +73,7 @@ export function runStateMigration({
         // Plain console.log — we're inside getDb() before logger.js may have
         // wired its sinks. The migration is short and one-shot, so terse is
         // fine; operators see this in the boot transcript.
-        // eslint-disable-next-line no-console
+         
         console.log(`[state-migration] ${msg}`);
     };
 

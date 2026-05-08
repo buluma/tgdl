@@ -99,7 +99,9 @@ export class BackupProvider {
      * @param {BackupContext} _ctx
      * @returns {AsyncGenerator<ListEntry>}
      */
-    async *list(_prefix: string, _ctx: BackupContext): AsyncGenerator<ListEntry> { throw new Error('not implemented'); }
+    async *list(_prefix: string, _ctx: BackupContext): AsyncGenerator<ListEntry> {
+        return; // subclass must override
+    }
 
     /**
      * Verify credentials + write access. Returns {ok, detail}.

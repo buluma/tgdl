@@ -292,8 +292,11 @@ export class HistoryDownloader extends EventEmitter {
                                 }
                             }
                         } finally {
-                            this.downloader.off?.('complete', onComplete)
-                                || this.downloader.removeListener?.('complete', onComplete);
+                            if (typeof this.downloader.off === 'function') {
+                                this.downloader.off('complete', onComplete);
+                            } else if (typeof this.downloader.removeListener === 'function') {
+                                this.downloader.removeListener('complete', onComplete);
+                            }
                         }
                     }
                 }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Web GUI Server - Configuration + Profile Photos + SQLite Data
  * Features: Groups, Settings, Viewer, Real Telegram Profile Photos
