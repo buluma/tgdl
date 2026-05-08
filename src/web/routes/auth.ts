@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
@@ -11,7 +10,7 @@ import { metrics } from '../../core/metrics.js';
 
 export const SESSION_COOKIE_OPTS = {
     httpOnly: true,
-    sameSite: 'strict',
+    sameSite: 'strict' as const,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
 };

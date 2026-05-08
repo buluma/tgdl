@@ -31,7 +31,7 @@
     "doctor": "node dist/index.js doctor",
     "prod": "node runner.js",
     "dev": "PORT=3011 tsx watch src/index.ts",
-    "migrate": "node scripts/migrate_json_to_sqlite.js",
+    "migrate": "tsx scripts/migrate_json_to_sqlite.ts",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{js,html,css}\" \"*.{md,json}\"",
     "test": "vitest run",

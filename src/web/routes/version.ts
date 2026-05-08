@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import fsSync from 'fs';
 import path from 'path';
@@ -42,7 +41,7 @@ async function _fetchLatestRelease() {
             signal: ctrl.signal,
         });
         if (!r.ok) return null;
-        const j = await r.json();
+        const j: any = await r.json();
         return { tag: j.tag_name, name: j.name || j.tag_name, url: j.html_url, publishedAt: j.published_at };
     } catch { return null; }
     finally { clearTimeout(t); }

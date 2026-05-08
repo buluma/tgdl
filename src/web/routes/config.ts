@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import fs from 'fs/promises';
 import * as ai from '../../core/ai/index.js';
@@ -358,13 +357,13 @@ export function createConfigRouter({
             // field — picks up the new cap / enabled / interval on the very next
             // sweep instead of waiting for whatever was already scheduled.
             if (req.body.diskManagement || req.body.advanced?.diskRotator) {
-                try { getDiskRotator()?.restart(); } catch (e) { console.warn('[disk-rotator] restart failed:', e.message); }
+                try { const d = getDiskRotator(); if (d) (d as any).restart(); } catch (e) { console.warn('[disk-rotator] restart failed:', e.message); }
             }
             // Same story for the rescue sweeper — sweep cadence (and the global
             // enabled flag, since per-group 'auto' follows it) needs to take
             // effect immediately, not on the next scheduled tick.
             if (req.body.rescue) {
-                try { getRescueSweeper()?.restart(); } catch (e) { console.warn('[rescue] restart failed:', e.message); }
+                try { const r = getRescueSweeper(); if (r) (r as any).restart(); } catch (e) { console.warn('[rescue] restart failed:', e.message); }
             }
             // Re-arm the integrity sweeper when its cadence/batch changes so the
             // user doesn't have to wait a full hour for the new interval to kick

@@ -104,7 +104,7 @@ export function on(type, fn) { events.on(type, fn); }
 /** All providers + their config schemas — used by the wizard endpoint. */
 export function listProviders() {
     return Object.values(PROVIDER_CLASSES).map((C) => ({
-        name: C.name,
+        name: C.providerId,
         displayName: C.displayName,
         configSchema: C.configSchema,
     }));

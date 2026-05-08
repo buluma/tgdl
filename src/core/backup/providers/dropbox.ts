@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Dropbox provider — wraps the optional `dropbox` SDK.
 //
 // Auth model: appKey + appSecret + refreshToken. The dashboard does
@@ -24,7 +23,7 @@
 
 import fs from 'fs';
 import { Transform } from 'stream';
-import { BackupProvider, optionalDepError } from './base.js';
+import { BackupProvider, optionalDepError, type UploadResult } from './base.js';
 import { encryptStream } from '../encryption.js';
 
 const SINGLE_SHOT_LIMIT = 150 * 1024 * 1024;
@@ -33,7 +32,7 @@ const DEFAULT_CHUNK_BYTES = Number(process.env.BACKUP_DROPBOX_CHUNK_BYTES) > 0
     : 8 * 1024 * 1024;
 
 export class DropboxProvider extends BackupProvider {
-    static get name() { return 'dropbox'; }
+    static get providerId() { return 'dropbox'; }
     static get displayName() { return 'Dropbox'; }
     static get configSchema() {
         return [
@@ -167,7 +166,7 @@ export class DropboxProvider extends BackupProvider {
         }
     }
 
-    async upload(localPath, remotePath, opts, ctx) {
+    async upload(localPath, remotePath, opts, ctx): Promise<UploadResult> {
         const target = this._resolve(remotePath);
         await this._ensureParents(target);
 
@@ -296,9 +295,11 @@ export class DropboxProvider extends BackupProvider {
     _buildTransformedStream(localPath, opts, ctx) {
         let body = fs.createReadStream(localPath);
         if (opts?.encryptKey) {
+            // @ts-expect-error Transform vs ReadStream
             body = body.pipe(encryptStream(opts.encryptKey));
         }
         if (typeof opts?.onProgress === 'function' || opts?.throttleBps) {
+            // @ts-expect-error Transform vs ReadStream
             body = body.pipe(_makeProgressTransform({
                 onProgress: opts?.onProgress,
                 throttleBps: opts?.throttleBps,
@@ -478,4 +479,3 @@ function _makeProgressTransform({ onProgress, throttleBps, signal }) {
         },
     });
 }
-

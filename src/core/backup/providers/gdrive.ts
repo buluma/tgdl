@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Google Drive provider — wraps the optional `googleapis` dependency.
 //
 // Auth model: the operator generates an OAuth2 refresh token externally
@@ -35,7 +34,7 @@ const APP_PROPERTY_VALUE = '1';
 const DEFAULT_PAGE_SIZE = 200;
 
 export class GoogleDriveProvider extends BackupProvider {
-    static get name() { return 'gdrive'; }
+    static get providerId() { return 'gdrive'; }
     static get displayName() { return 'Google Drive'; }
     static get configSchema() {
         return [
@@ -243,9 +242,11 @@ export class GoogleDriveProvider extends BackupProvider {
 
         let body = fs.createReadStream(localPath);
         if (opts?.encryptKey) {
+            // @ts-expect-error Transform vs ReadStream
             body = body.pipe(encryptStream(opts.encryptKey));
         }
         if (typeof opts?.onProgress === 'function' || opts?.throttleBps) {
+            // @ts-expect-error Transform vs ReadStream
             body = body.pipe(_makeProgressTransform({
                 onProgress: opts?.onProgress,
                 throttleBps: opts?.throttleBps,

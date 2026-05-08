@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import fs from 'fs/promises';
 import crypto from 'crypto';
@@ -212,7 +211,7 @@ export function createHistoryRouter({ dataDir, loadConfig, getAccountManager, ru
             const history = new HistoryDownloader(am.getDefaultClient(), downloader, config, am);
 
             const jobId = crypto.randomBytes(6).toString('hex');
-            const job = {
+            const job: any = {
                 id: jobId,
                 state: 'running',
                 processed: 0,
@@ -220,7 +219,7 @@ export function createHistoryRouter({ dataDir, loadConfig, getAccountManager, ru
                 error: null,
                 group: group.name,
                 groupId: String(group.id),
-                limit: lim, // null = "all"
+                limit: lim,
                 startedAt: Date.now(),
                 finishedAt: null,
                 cancelled: false,

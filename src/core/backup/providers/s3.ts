@@ -1,4 +1,3 @@
-// @ts-nocheck
 // S3-compatible provider — covers AWS S3, Cloudflare R2, Backblaze B2,
 // MinIO, Wasabi, DigitalOcean Spaces and the rest of the S3-API ecosystem
 // in one driver. Provider-specific quirks (R2's missing CRC, B2's
@@ -29,7 +28,7 @@ import { BackupProvider } from './base.js';
 import { encryptStream } from '../encryption.js';
 
 export class S3Provider extends BackupProvider {
-    static get name() { return 's3'; }
+    static get providerId() { return 's3'; }
     static get displayName() { return 'S3-compatible (AWS / R2 / B2 / MinIO / Wasabi)'; }
     static get configSchema() {
         return [
@@ -141,9 +140,11 @@ export class S3Provider extends BackupProvider {
         const ContentType = _guessContentType(remotePath);
         let body = fs.createReadStream(localPath);
         if (opts?.encryptKey) {
+            // @ts-expect-error Transform vs ReadStream
             body = body.pipe(encryptStream(opts.encryptKey));
         }
         if (typeof opts?.onProgress === 'function' || opts?.throttleBps) {
+            // @ts-expect-error Transform vs ReadStream
             body = body.pipe(_makeProgressTransform({
                 onProgress: opts?.onProgress,
                 throttleBps: opts?.throttleBps,

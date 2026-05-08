@@ -1,4 +1,3 @@
-// @ts-nocheck
 // FTP / FTPS provider — wraps the optional `basic-ftp` dependency.
 //
 // `basic-ftp` is listed in optionalDependencies (not regular deps) so a
@@ -28,8 +27,8 @@ const DEFAULT_TIMEOUT_MS = Number(process.env.BACKUP_FTP_TIMEOUT_MS) > 0
     ? Number(process.env.BACKUP_FTP_TIMEOUT_MS) : 30_000;
 
 export class FtpProvider extends BackupProvider {
-    static get name() { return 'ftp'; }
-    static get displayName() { return 'FTP / FTPS'; }
+    static get providerId() { return 'ftp'; }
+    static get displayName() { return 'FTP'; }
     static get configSchema() {
         return [
             { name: 'host',       label: 'Host',       type: 'text',     required: true,
@@ -121,7 +120,7 @@ export class FtpProvider extends BackupProvider {
     /** Open a fresh control connection, run the callback, always close.
      *  basic-ftp's Client is single-use per logical operation — sharing
      *  one across overlapping ops is not safe. */
-    async _withClient(fn, ctx) {
+    async _withClient(fn: any, ctx?: any) {
         const client = new this._ftp.Client(DEFAULT_TIMEOUT_MS);
         client.ftp.verbose = false;
         let aborted = false;
@@ -164,9 +163,11 @@ export class FtpProvider extends BackupProvider {
 
             let body = fs.createReadStream(localPath);
             if (opts?.encryptKey) {
+                // @ts-expect-error Transform vs ReadStream
                 body = body.pipe(encryptStream(opts.encryptKey));
             }
             if (typeof opts?.onProgress === 'function' || opts?.throttleBps) {
+                // @ts-expect-error Transform vs ReadStream
                 body = body.pipe(_makeProgressTransform({
                     onProgress: opts?.onProgress,
                     throttleBps: opts?.throttleBps,

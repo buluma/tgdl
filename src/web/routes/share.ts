@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import {
     getDb,
@@ -73,7 +72,7 @@ export function createShareRouter({ log }) {
     router.get('/api/share/links', async (req, res) => {
         try {
             const downloadId = req.query.downloadId
-                ? parseInt(req.query.downloadId, 10)
+                ? parseInt(String(req.query.downloadId), 10)
                 : null;
             const includeRevoked = req.query.includeRevoked !== '0';
             const rows = listShareLinks({ downloadId, includeRevoked });

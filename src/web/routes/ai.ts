@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import * as ai from '../../core/ai/index.js';
 import {
@@ -377,7 +376,7 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
                 const key = `${kind}::${modelId}`;
                 const m = metaByKey.get(key);
                 const err = errsByKey.get(key);
-                const cache = await ai.inspectModelCache(modelId, cfg.cacheDir);
+                const cache = await ai.inspectModelCache(modelId, (cfg as any).cacheDir);
                 out[desc.cap] = {
                     modelId,
                     kind,
@@ -395,7 +394,7 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
             }
             res.json({
                 success: true,
-                cacheRoot: ai.resolveCacheDir(cfg.cacheDir),
+                cacheRoot: ai.resolveCacheDir((cfg as any).cacheDir),
                 models: out,
             });
         } catch (e) {
@@ -413,7 +412,7 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
             // Drop the in-process pipeline first so the on-disk wipe doesn't
             // leave a stale handle wired to deleted weights.
             try { await ai.clearPipelineForModel(modelId); } catch { /* ignore */ }
-            const r = await ai.deleteModelCache(modelId, cfg.cacheDir);
+            const r = await ai.deleteModelCache(modelId, (cfg as any).cacheDir);
             log({ source: 'ai', level: 'info', msg: `model cache wiped: ${modelId} (${r.bytes} bytes)` });
             res.json({ success: true, ...r });
         } catch (e) {

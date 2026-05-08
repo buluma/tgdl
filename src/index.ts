@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Telegram Auto-Downloader CLI
  * Multi-Account Support
@@ -40,7 +39,7 @@ const CONFIG_PATH = path.join(__dirname, '../data/config.json');
 // optional dep (most often `onnxruntime-node`, transitively from the
 // optional NSFW classifier) ships glibc-only prebuilds on a musl image.
 process.on('unhandledRejection', (reason) => {
-    const msg = reason?.message || String(reason);
+    const msg = (reason as any)?.message || String(reason);
     if (suppressNoise(msg, 'unhandledRejection')) return;
     if (NATIVE_LOAD_FAIL.test(msg)) {
         console.warn('[startup] An optional native module failed to load:', msg.slice(0, 200));
@@ -66,8 +65,8 @@ function question(query) {
     });
 }
 
-function checkPortAvailable(port) {
-    return new Promise<void>((resolve) => {
+function checkPortAvailable(port: number) {
+    return new Promise<{ ok: boolean; detail: string }>((resolve) => {
         const server = net.createServer();
         server.once('error', (err) => {
             const inUse = err && (err.code === 'EADDRINUSE' || err.code === 'EACCES');
@@ -558,7 +557,7 @@ async function configureGlobalSettings(config) {
             if (val === 'custom') {
                 console.log();
                 const input = await question(colorize('Enter max speed in MB/s (e.g. 2.5): ', 'cyan'));
-                const num = parseFloat(input);
+                const num = parseFloat(String(input));
                 if (isNaN(num)) {
                     console.log(colorize('Invalid number!', 'red'));
                     await new Promise(r => setTimeout(r, 1000));
@@ -584,7 +583,7 @@ async function configureGlobalSettings(config) {
             if (val === 'custom') {
                 console.log();
                 const input = await question(colorize('Enter number of workers (1-20): ', 'cyan'));
-                const num = parseInt(input);
+                const num = parseInt(String(input));
                 if (isNaN(num) || num < 1 || num > 20) {
                      console.log(colorize('Invalid number (1-20)!', 'red'));
                      await new Promise(r => setTimeout(r, 1000));
@@ -616,7 +615,7 @@ async function configureGlobalSettings(config) {
             if (val === 'custom') {
                 console.log();
                 const input = await question(colorize('Enter requests per minute: ', 'cyan'));
-                const num = parseInt(input);
+                const num = parseInt(String(input));
                 if (isNaN(num) || num < 1) {
                     console.log(colorize('Invalid number!', 'red'));
                     continue;
@@ -819,7 +818,7 @@ async function configureGroups(accountManager, config) {
     };
 
     // Main loop
-    await new Promise(resolve => {
+    await new Promise<void>((resolve) => {
         const onKeypress = async (str, key) => {
             if (!key) return;
 
@@ -871,7 +870,7 @@ async function configureGroups(accountManager, config) {
                             console.log();
 
                             const choice = await question(colorize('Enter number: ', 'yellow'));
-                            const num = parseInt(choice);
+                            const num = parseInt(String(choice));
 
                             if (num > 0 && num <= dialogs.length) {
                                 const selected = dialogs[num - 1];
@@ -999,7 +998,7 @@ async function configureGroups(accountManager, config) {
 
     // Resume normal input for confirmation
     const startNow = await question(colorize('Start monitor now? (y/n): ', 'yellow'));
-    if (startNow.toLowerCase() === 'y') {
+    if (String(startNow).toLowerCase() === 'y') {
         console.log();
         await startMonitor(accountManager, config);
     }
@@ -1233,7 +1232,7 @@ async function startHistory(accountManager, config, connManager) {
         console.log(colorize(`Page ${Math.floor(cursor/pageSize) + 1}/${Math.ceil(groups.length/pageSize)}`, 'dim'));
     };
 
-    await new Promise(resolve => {
+    await new Promise<void>((resolve) => {
         const onKeypress = (str, key) => {
             if (key.name === 'up') {
                 cursor = Math.max(0, cursor - 1);
@@ -1284,7 +1283,7 @@ async function startHistory(accountManager, config, connManager) {
 
     if (process.stdin.isTTY) process.stdin.setRawMode(true);
 
-    await new Promise(resolve => {
+    await new Promise<void>((resolve) => {
         const renderFilters = () => {
              clearScreen();
              console.log(colorize(`Selected: ${selectedGroup.title || selectedGroup.name}`, 'green', 'bold'));
@@ -1357,7 +1356,7 @@ async function startHistory(accountManager, config, connManager) {
     else if (choice === '3') limit = Number.MAX_SAFE_INTEGER;
     else if (choice === '4') {
         const dateStr = await question(colorize('Start from date (YYYY-MM-DD): ', 'cyan'));
-        const date = new Date(dateStr);
+        const date = new Date(String(dateStr));
         if (isNaN(date.getTime())) {
             console.log(colorize('Invalid date!', 'red'));
             return;
@@ -1398,7 +1397,7 @@ async function startHistory(accountManager, config, connManager) {
         process.stdin.resume();
     }
 
-    await new Promise(resolve => {
+    await new Promise<void>((resolve) => {
         const renderFilters = () => {
             clearScreen();
             console.log(colorize('🛠️  SELECT MEDIA TO DOWNLOAD', 'cyan', 'bold'));
@@ -1478,7 +1477,7 @@ async function startHistory(accountManager, config, connManager) {
     }
 
     // Pass options based on choice
-    const options = {};
+    const options: { limit?: number; offsetDate?: number } = {};
     if (limit) options.limit = limit;
     if (offsetDate) options.offsetDate = offsetDate;
 

@@ -164,7 +164,7 @@ export class RescueSweeper {
 let _singleton = null;
 
 /** Lazily-created singleton wired to loadConfig + broadcast. */
-export function getRescueSweeper(opts) {
+export function getRescueSweeper(opts?: any) {
     if (!_singleton && opts) _singleton = new RescueSweeper(opts);
     return _singleton;
 }

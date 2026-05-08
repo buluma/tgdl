@@ -228,7 +228,7 @@ export class DiskRotator {
 let _singleton = null;
 
 /** Lazily-created singleton wired to loadConfig + broadcast. */
-export function getDiskRotator(opts) {
+export function getDiskRotator(opts?: any) {
     if (!_singleton && opts) _singleton = new DiskRotator(opts);
     return _singleton;
 }

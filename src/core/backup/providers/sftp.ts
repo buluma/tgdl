@@ -1,4 +1,3 @@
-// @ts-nocheck
 // SFTP backup provider. Wraps `ssh2-sftp-client` with the same surface
 // the manager expects from every provider — streaming upload, idempotent
 // delete, stat-or-null, async-iterable list, cheap testConnection.
@@ -19,7 +18,7 @@ import { BackupProvider } from './base.js';
 import { encryptStream } from '../encryption.js';
 
 export class SftpProvider extends BackupProvider {
-    static get name() { return 'sftp'; }
+    static get providerId() { return 'sftp'; }
     static get displayName() { return 'SFTP (SSH file transfer)'; }
     static get configSchema() {
         return [
@@ -94,9 +93,11 @@ export class SftpProvider extends BackupProvider {
 
         let body = fs.createReadStream(localPath);
         if (opts?.encryptKey) {
+            // @ts-expect-error Transform vs ReadStream
             body = body.pipe(encryptStream(opts.encryptKey));
         }
         if (typeof opts?.onProgress === 'function' || opts?.throttleBps) {
+            // @ts-expect-error Transform vs ReadStream
             body = body.pipe(_makeProgressTransform({
                 onProgress: opts?.onProgress,
                 throttleBps: opts?.throttleBps,

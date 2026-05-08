@@ -32,6 +32,7 @@ interface Config {
     sweepIntervalMin: number;
   };
   advanced?: any;
+  web?: any;
   // Add more as needed
 }
 

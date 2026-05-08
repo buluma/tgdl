@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Local-filesystem backup provider.
 //
 // Targets a directory on a mounted volume — the typical NAS use case is
@@ -17,8 +16,8 @@ import { BackupProvider } from './base.js';
 import { encryptStream } from '../encryption.js';
 
 export class LocalProvider extends BackupProvider {
-    static get name() { return 'local'; }
-    static get displayName() { return 'Local filesystem / NAS mount'; }
+    static get providerId() { return 'local'; }
+    static get displayName() { return 'Local Directory'; }
     static get configSchema() {
         return [
             {
@@ -90,6 +89,7 @@ export class LocalProvider extends BackupProvider {
         }
         const stages = [src, ...transforms, dst];
         try {
+            // @ts-expect-error pipeline accepts array + options
             await pipeline(stages, { signal: ctx?.signal });
         } catch (e) {
             try { await fsp.unlink(tmp); } catch {}

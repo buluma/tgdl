@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Safe Express route wrapper.
  *
@@ -37,7 +36,7 @@ function _stable(value) {
  * @param {string} [opts.prefix='route']         Source label for log entries + envelope `where`.
  * @returns {(handler: Function) => Function}    Wrapped Express handler.
  */
-export function makeSafe({ log, prefix = 'route' } = {}) {
+export function makeSafe({ log, prefix = 'route' }: any = {}) {
     const _log = (entry) => {
         try {
             if (typeof log === 'function') log(entry);
@@ -68,14 +67,14 @@ export function makeSafe({ log, prefix = 'route' } = {}) {
                 });
                 if (res.headersSent) return; // can't recover the response cleanly
                 const status = Number.isInteger(err?.status) ? err.status : 500;
-                const body = {
+                const body: Record<string, any> = {
                     ok: false,
                     success: false,
                     code: err?.code || `${prefix.toUpperCase()}_ROUTE_ERROR`,
                     message: err?.message || 'Internal error',
                     where,
                 };
-                const detail = _stable(err?.detail);
+                const detail = _stable((err as any)?.detail);
                 if (detail) body.detail = detail;
                 try {
                     res.status(status).json(body);
@@ -93,7 +92,11 @@ export function makeSafe({ log, prefix = 'route' } = {}) {
  * paths so the route still feels declarative.
  */
 export class HttpError extends Error {
-    constructor(status, code, message, detail) {
+    status: number;
+    code: string;
+    detail: any;
+
+    constructor(status: number, code: string, message?: string, detail?: any) {
         super(message || code || 'HTTP error');
         this.name = 'HttpError';
         this.status = status;
