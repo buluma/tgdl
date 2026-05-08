@@ -17,10 +17,10 @@
  * shortcuts.js).
  */
 
-import { state } from './store.ts';
-import { api } from './api.ts';
-import { showToast } from './utils.ts';
-import { t as i18nT } from './i18n.ts';
+import { state } from './store.js';
+import { api } from './api.js';
+import { showToast } from './utils.js';
+import { t as i18nT } from './i18n.js';
 
 const MENU_ID = 'tgdl-gallery-context';
 let _wired = false;
@@ -133,7 +133,7 @@ async function _handle(action, file, idx) {
     if (!file) return;
     if (action === 'open') {
         // Lazy import — viewer.js is a sibling module, ESM circular-safe.
-        const { openMediaViewer } = await import('./viewer.ts');
+        const { openMediaViewer } = await import('./viewer.js');
         openMediaViewer(idx);
         return;
     }
@@ -161,7 +161,7 @@ async function _handle(action, file, idx) {
             return;
         }
         try {
-            const { openShareSheet } = await import('./share.ts');
+            const { openShareSheet } = await import('./share.js');
             openShareSheet({ downloadId: file.id, fileName: file.name });
         } catch {
             showToast(i18nT('gallery.context.share_unavailable', 'Share not available'), 'error');
@@ -196,7 +196,7 @@ async function _handle(action, file, idx) {
             return;
         }
         try {
-            const { openShareSheet } = await import('./share.ts');
+            const { openShareSheet } = await import('./share.js');
             openShareSheet({ downloadId: file.id, fileName: file.name });
         } catch {
             showToast(i18nT('gallery.context.forward_unavailable', 'Forward not available'), 'error');
@@ -204,7 +204,7 @@ async function _handle(action, file, idx) {
         return;
     }
     if (action === 'delete') {
-        const { confirmSheet } = await import('./sheet.ts');
+        const { confirmSheet } = await import('./sheet.js');
         const ok = await confirmSheet({
             title: i18nT('gallery.context.delete', 'Delete'),
             message: i18nT('gallery.context.delete_confirm', 'Delete this file? This cannot be undone.'),

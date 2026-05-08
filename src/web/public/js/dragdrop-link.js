@@ -10,9 +10,9 @@
  * single drop target.
  */
 
-import { showToast } from './utils.ts';
-import { api } from './api.ts';
-import { t as i18nT } from './i18n.ts';
+import { showToast } from './utils.js';
+import { api } from './api.js';
+import { t as i18nT } from './i18n.js';
 
 const TG_URL_RE = /\bhttps?:\/\/t\.me\/[^\s<>"]+/i;
 let _wired = false;

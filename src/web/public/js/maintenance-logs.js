@@ -7,10 +7,10 @@
 // Filters: source (multi-select chip group), level (radio), free-text
 // search. Pause + Clear + Download .log + auto-scroll toggle.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast, escapeHtml } from './utils.ts';
-import { t as i18nT } from './i18n.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast, escapeHtml } from './utils.js';
+import { t as i18nT } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 

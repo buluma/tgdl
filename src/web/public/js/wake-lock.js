@@ -6,7 +6,7 @@
  * Feature-detected: `navigator.wakeLock` is unavailable on Safari iOS
  * (as of mid-2026), so we silently no-op there. The caller stays simple:
  *
- *   import { acquireIfActive, releaseIfIdle } from './wake-lock.ts';
+ *   import { acquireIfActive, releaseIfIdle } from './wake-lock.js';
  *   acquireIfActive(activeJobs);   // re-checked on every WS update
  *   releaseIfIdle(activeJobs);
  *

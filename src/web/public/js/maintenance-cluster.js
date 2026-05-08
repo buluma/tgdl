@@ -10,11 +10,11 @@
 //
 // Live updates arrive via WebSocket: peer_added, peer_removed, peer_status.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast, escapeHtml, formatRelativeTime } from './utils.ts';
-import { openSheet, confirmSheet } from './sheet.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast, escapeHtml, formatRelativeTime } from './utils.js';
+import { openSheet, confirmSheet } from './sheet.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 

@@ -6,8 +6,8 @@
 // (5 s + 3 s + 4 s = three separate fetches every few seconds), now they
 // share one.
 
-import { t as i18nT } from './i18n.ts';
-import { subscribe as subscribeMonitorStatus, refreshNow as refreshMonitorStatus } from './monitor-status.ts';
+import { t as i18nT } from './i18n.js';
+import { subscribe as subscribeMonitorStatus, refreshNow as refreshMonitorStatus } from './monitor-status.js';
 
 const HINTS_DEF = {
     'configure-api': {

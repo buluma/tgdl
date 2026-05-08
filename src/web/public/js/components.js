@@ -4,7 +4,7 @@
 // accounts list and the engine's "live downloads" list all stay in sync
 // when we change the look.
 
-import { createAvatar, escapeHtml, formatRelativeTime } from './utils.ts';
+import { createAvatar, escapeHtml, formatRelativeTime } from './utils.js';
 
 /**
  * Telegram-style chat row.

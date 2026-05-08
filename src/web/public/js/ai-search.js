@@ -13,10 +13,10 @@
 //
 // Idempotent — bindSearchUi() guards against double-wiring on re-mount.
 
-import { api } from './api.ts';
-import { escapeHtml, showToast } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { openResultViewer } from './ai-result-viewer.ts';
+import { api } from './api.js';
+import { escapeHtml, showToast } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { openResultViewer } from './ai-result-viewer.js';
 
 const DEBOUNCE_MS = 250;
 const RECENT_LS_KEY = 'tgdl-ai-search-recent';

@@ -10,10 +10,10 @@
 // `faststart_done` over WS, status endpoint recovers in-flight state on
 // page reopen.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 

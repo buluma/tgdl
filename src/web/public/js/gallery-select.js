@@ -15,7 +15,7 @@
 // matching `[data-path]` tile, no re-render of the whole grid. This is
 // the only way the lasso stays smooth on a 1000-tile gallery.
 
-import { state } from './store.ts';
+import { state } from './store.js';
 
 let _wired = false;
 let _lastAnchorPath = null;       // last single-toggle target — pivot for shift+click ranges
@@ -93,7 +93,7 @@ export function setupGallerySelect(hooks = {}) {
             hooks.onChange?.();
             return;
         }
-        // Else: fall through to app.ts's existing open-viewer click handler.
+        // Else: fall through to app.js's existing open-viewer click handler.
     }, true);
 
     // ----- Drag-to-select lasso ----------------------------------------

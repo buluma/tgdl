@@ -9,10 +9,10 @@
 // Both rely on /api/share/links* (admin-only via the chokepoint) and
 // share the same row renderer so behavior stays consistent.
 
-import { api } from './api.ts';
-import { showToast } from './utils.ts';
-import { openSheet, confirmSheet } from './sheet.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
+import { api } from './api.js';
+import { showToast } from './utils.js';
+import { openSheet, confirmSheet } from './sheet.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
 
 const TTL_OPTIONS = [
     { sec: 3600,             key: 'share.ttl.1h',    label: '1 hour'   },
@@ -457,7 +457,7 @@ export async function openAllSharesSheet() {
         const now = Date.now();
         const expired = links.filter(l => !l.revokedAt && l.expiresAt !== 0 && l.expiresAt * 1000 <= now);
         if (!expired.length) return;
-        const ok = await import('./sheet.ts').then(m => m.confirmSheet({
+        const ok = await import('./sheet.js').then(m => m.confirmSheet({
             title: i18nT('share.maint.cleanup_confirm_title', 'Revoke all expired links?'),
             message: i18nTf('share.maint.cleanup_confirm_body',
                 { n: expired.length },

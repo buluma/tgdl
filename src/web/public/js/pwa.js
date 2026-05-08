@@ -92,7 +92,7 @@ if ('serviceWorker' in navigator) {
 
     window.addEventListener('load', () => {
         navigator.serviceWorker
-            .register('/sw.ts', { scope: '/' })
+            .register('/sw.js', { scope: '/' })
             .then((reg) => {
                 // If a new worker is found, tell it to take over right
                 // away (matches the SW's skipWaiting handler).

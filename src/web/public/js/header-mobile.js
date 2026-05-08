@@ -10,7 +10,7 @@
 // 50 in localStorage, badge counts the unread set, browser tab title
 // flashes when a new important event lands while the page is hidden.
 
-import { t as i18nT } from './i18n.ts';
+import { t as i18nT } from './i18n.js';
 
 const NOTIFY_STORAGE_KEY = 'tgdl-notify-buffer';
 const NOTIFY_UNREAD_KEY  = 'tgdl-notify-unread';
@@ -195,7 +195,7 @@ function setupNotifyBell() {
     });
 }
 
-// Wired by app.ts's WS dispatcher — every `log` event with level >= warn
+// Wired by app.js's WS dispatcher — every `log` event with level >= warn
 // gets pushed into the bell buffer + badge increments + tab title flashes.
 export function pushLogToNotify(entry) {
     if (!entry) return;

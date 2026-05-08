@@ -7,10 +7,10 @@
 // downloaded / uptime). The "View full queue" link beneath the buttons
 // hands the user off to the dedicated page when they want detail.
 
-import { api } from './api.ts';
-import { showToast } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { subscribe as subscribeMonitorStatus, refreshNow as refreshMonitorStatus } from './monitor-status.ts';
+import { api } from './api.js';
+import { showToast } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { subscribe as subscribeMonitorStatus, refreshNow as refreshMonitorStatus } from './monitor-status.js';
 
 const $ = (id) => document.getElementById(id);
 

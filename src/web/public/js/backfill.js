@@ -18,12 +18,12 @@
 // server's JSON file (data/history-jobs.json) so a tab refresh always
 // shows the canonical list.
 
-import { state, getGroupName } from './store.ts';
-import { api } from './api.ts';
-import { ws } from './ws.ts';
-import { escapeHtml, showToast } from './utils.ts';
-import { t as i18nT, tf as i18nTf, applyToDOM as applyI18n } from './i18n.ts';
-import { confirmSheet } from './sheet.ts';
+import { state, getGroupName } from './store.js';
+import { api } from './api.js';
+import { ws } from './ws.js';
+import { escapeHtml, showToast } from './utils.js';
+import { t as i18nT, tf as i18nTf, applyToDOM as applyI18n } from './i18n.js';
+import { confirmSheet } from './sheet.js';
 
 const PRESETS = [
     { value: 5, key: 'backfill.preset.last_5', fallback: 'Last 5' },
@@ -766,7 +766,7 @@ async function deleteRecent(jobId, btn) {
         recentJobs = recentJobs.filter(j => String(j.id) !== String(jobId));
         renderRecent();
     } catch (e) {
-        try { (await import('./utils.ts')).showToast(e?.data?.error || e.message || 'Failed', 'error'); } catch {}
+        try { (await import('./utils.js')).showToast(e?.data?.error || e.message || 'Failed', 'error'); } catch {}
         if (btn) btn.disabled = false;
     }
 }
@@ -777,7 +777,7 @@ async function clearAllRecent() {
     // operator can re-trigger after the next refresh.
     let ok = false;
     try {
-        const sheet = await import('./sheet.ts');
+        const sheet = await import('./sheet.js');
         ok = await sheet.confirmSheet({
             title: i18nT('backfill.recent.clear_title', 'Clear all recent backfills?'),
             body: i18nT('backfill.recent.clear_body', 'This removes every entry from the Recent backfills list. Running jobs are preserved. Files already downloaded are not affected.'),
@@ -791,7 +791,7 @@ async function clearAllRecent() {
         recentJobs = recentJobs.filter(j => j.state === 'running');
         renderRecent();
     } catch (e) {
-        try { (await import('./utils.ts')).showToast(e?.data?.error || e.message || 'Failed', 'error'); } catch {}
+        try { (await import('./utils.js')).showToast(e?.data?.error || e.message || 'Failed', 'error'); } catch {}
     }
 }
 

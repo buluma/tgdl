@@ -8,8 +8,8 @@
 // session, no server round-trip. The Settings → Look & Feel panel can
 // surface a UI for this; the wire format is documented + tested.
 
-import { openSheet, sheetCount } from './sheet.ts';
-import { t as i18nT } from './i18n.ts';
+import { openSheet, sheetCount } from './sheet.js';
+import { t as i18nT } from './i18n.js';
 
 const OVERRIDE_KEY = 'tgdl-shortcut-overrides';
 

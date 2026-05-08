@@ -1,7 +1,7 @@
-import { state } from './store.ts';
-import { formatDate, showToast } from './utils.ts';
-import { attachSwipe, attachDragDismiss } from './gestures.ts';
-import { tf as i18nTf, t as i18nT } from './i18n.ts';
+import { state } from './store.js';
+import { formatDate, showToast } from './utils.js';
+import { attachSwipe, attachDragDismiss } from './gestures.js';
+import { tf as i18nTf, t as i18nT } from './i18n.js';
 
 // ============================================================================
 // Media Viewer
@@ -971,7 +971,7 @@ export function setupViewerEvents() {
             return;
         }
         try {
-            const m = await import('./share.ts');
+            const m = await import('./share.js');
             await m.openShareSheet({ downloadId: file.id, fileName: file.name });
         } catch (e) {
             console.error('share sheet load:', e);

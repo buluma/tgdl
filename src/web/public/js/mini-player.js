@@ -15,7 +15,7 @@
  * Cross-platform: pure DOM, no third-party deps.
  */
 
-import { state } from './store.ts';
+import { state } from './store.js';
 
 let _wired = false;
 let _shown = false;
@@ -74,7 +74,7 @@ export async function expand() {
     dismiss();
     if (_restoreIndex == null) return;
     try {
-        const { openMediaViewer } = await import('./viewer.ts');
+        const { openMediaViewer } = await import('./viewer.js');
         openMediaViewer(_restoreIndex);
         // Restore the play position once the viewer's <video> finishes
         // loading metadata so the full-size player picks up where mini

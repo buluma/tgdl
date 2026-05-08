@@ -3,34 +3,34 @@
  * Uses ES Modules — Complete Implementation
  */
 
-import { state, getGroupName, updateGroupNameCache, isUnresolvedName } from './store.ts';
-import { api } from './api.ts';
-import { escapeHtml, getFileIcon, showToast, formatBytes } from './utils.ts';
-import * as Settings from './settings.ts';
-import * as Viewer from './viewer.ts';
-import { initEngine, handleEngineWsMessage } from './engine.ts';
-import { ws } from './ws.ts';
-import { initTheme, getTheme, setTheme } from './theme.ts';
-import { initStatusBar } from './statusbar.ts';
-import * as Notifications from './notifications.ts';
-import { initOnboarding, refreshOnboarding } from './onboarding.ts';
-import { initShortcuts } from './shortcuts.ts';
-import * as router from './router.ts';
-import { openSheet, confirmSheet } from './sheet.ts';
-import { renderChatRow, renderEmptyState, renderRowSkeletons, renderGallerySkeletons } from './components.ts';
-import { formatRelativeTime } from './utils.ts';
-import { attachPullToRefresh } from './gestures.ts';
-import { setupGallerySelect, exitSelectMode, repaintSelection, selectAllVisible } from './gallery-select.ts';
-import { initI18n, setLang, getLang, applyToDOM as applyI18n, t as i18nT, tf as i18nTf } from './i18n.ts';
-import { showBackfillPage, deepLinkFromModal as backfillDeepLink, stopBackfillPage } from './backfill.ts';
-import * as Fonts from './fonts.ts';
-import { showQueuePage, initQueue } from './queue.ts';
-import { initHeaderMobile, pushLogToNotify } from './header-mobile.ts';
-import { setupGalleryContextMenu } from './gallery-context.ts';
-import { setupDragDropLink } from './dragdrop-link.ts';
-import { setupMiniPlayer, shrinkToMini, dismiss as dismissMiniPlayer } from './mini-player.ts';
-import { wireChangelogTrigger } from './changelog-viewer.ts';
-import * as WakeLock from './wake-lock.ts';
+import { state, getGroupName, updateGroupNameCache, isUnresolvedName } from './store.js';
+import { api } from './api.js';
+import { escapeHtml, getFileIcon, showToast, formatBytes } from './utils.js';
+import * as Settings from './settings.js';
+import * as Viewer from './viewer.js';
+import { initEngine, handleEngineWsMessage } from './engine.js';
+import { ws } from './ws.js';
+import { initTheme, getTheme, setTheme } from './theme.js';
+import { initStatusBar } from './statusbar.js';
+import * as Notifications from './notifications.js';
+import { initOnboarding, refreshOnboarding } from './onboarding.js';
+import { initShortcuts } from './shortcuts.js';
+import * as router from './router.js';
+import { openSheet, confirmSheet } from './sheet.js';
+import { renderChatRow, renderEmptyState, renderRowSkeletons, renderGallerySkeletons } from './components.js';
+import { formatRelativeTime } from './utils.js';
+import { attachPullToRefresh } from './gestures.js';
+import { setupGallerySelect, exitSelectMode, repaintSelection, selectAllVisible } from './gallery-select.js';
+import { initI18n, setLang, getLang, applyToDOM as applyI18n, t as i18nT, tf as i18nTf } from './i18n.js';
+import { showBackfillPage, deepLinkFromModal as backfillDeepLink, stopBackfillPage } from './backfill.js';
+import * as Fonts from './fonts.js';
+import { showQueuePage, initQueue } from './queue.js';
+import { initHeaderMobile, pushLogToNotify } from './header-mobile.js';
+import { setupGalleryContextMenu } from './gallery-context.js';
+import { setupDragDropLink } from './dragdrop-link.js';
+import { setupMiniPlayer, shrinkToMini, dismiss as dismissMiniPlayer } from './mini-player.js';
+import { wireChangelogTrigger } from './changelog-viewer.js';
+import * as WakeLock from './wake-lock.js';
 
 // ============ Render coalescing ============
 //
@@ -203,12 +203,12 @@ async function init() {
     // page so the admin doesn't miss a long background scan.
     ws.on('nsfw_progress', () => {
         if (state.currentPage === 'settings') {
-            import('./nsfw-ui.ts').then(m => m.refreshNsfwStatus()).catch(() => {});
+            import('./nsfw-ui.js').then(m => m.refreshNsfwStatus()).catch(() => {});
         }
     });
     ws.on('nsfw_done', (m) => {
         if (state.currentPage === 'settings') {
-            import('./nsfw-ui.ts').then(m2 => m2.refreshNsfwStatus()).catch(() => {});
+            import('./nsfw-ui.js').then(m2 => m2.refreshNsfwStatus()).catch(() => {});
         }
         const candidates = m?.candidates ?? 0;
         const msg = candidates > 0
@@ -471,7 +471,7 @@ async function init() {
     // Desktop-grade gallery picker: drag-to-select (lasso), Ctrl/Cmd
     // toggle, Shift range, Ctrl+A select-all, Esc exit, Delete bulk-delete.
     // Wires once — handlers are bound on `document` + the grid in capture
-    // phase so they take precedence over app.ts's per-tile delegation.
+    // phase so they take precedence over app.js's per-tile delegation.
     setupGallerySelect({
         onChange: () => updateSelectionBar(),
         deleteSelected: () => {
@@ -626,35 +626,35 @@ function renderPage(page, params = {}) {
         // dedicated pages directly.
         document.getElementById('page-title').textContent = i18nT('maintenance.hub.title', 'Maintenance');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.hub.subtitle', 'Catalogue, thumbnails, NSFW review, logs, backup destinations');
-        import('./maintenance-hub.ts').then(m => m.init()).catch(e => console.error('maintenance-hub', e));
+        import('./maintenance-hub.js').then(m => m.init()).catch(e => console.error('maintenance-hub', e));
     } else if (page === 'maintenance-duplicates') {
         document.getElementById('page-title').textContent = i18nT('maintenance.duplicates.title', 'Find duplicate files');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.duplicates.subtitle', 'Hash every file and reclaim space from byte-identical copies');
-        import('./maintenance-duplicates.ts').then(m => m.init()).catch(e => console.error('maintenance-duplicates', e));
+        import('./maintenance-duplicates.js').then(m => m.init()).catch(e => console.error('maintenance-duplicates', e));
     } else if (page === 'maintenance-thumbs') {
         document.getElementById('page-title').textContent = i18nT('maintenance.thumbs.page_title', 'Build thumbnails');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.thumbs.subtitle', 'Generate WebP previews for older files');
-        import('./maintenance-thumbs.ts').then(m => m.init()).catch(e => console.error('maintenance-thumbs', e));
+        import('./maintenance-thumbs.js').then(m => m.init()).catch(e => console.error('maintenance-thumbs', e));
     } else if (page === 'maintenance-video') {
         document.getElementById('page-title').textContent = i18nT('maintenance.video.page_title', 'Optimise videos for streaming');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.video.subtitle', 'Rewrite MP4s with `+faststart` so the HTML5 player can seek + play audio without buffering the whole file.');
-        import('./maintenance-video.ts').then(m => m.init()).catch(e => console.error('maintenance-video', e));
+        import('./maintenance-video.js').then(m => m.init()).catch(e => console.error('maintenance-video', e));
     } else if (page === 'maintenance-nsfw') {
         document.getElementById('page-title').textContent = i18nT('maintenance.nsfw.page_title', 'NSFW review');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.nsfw.subtitle', "Five-tier classifier review — keep what's confidently 18+, delete what's confidently not, eyeball the borderline cases.");
-        import('./maintenance-nsfw.ts').then(m => m.init()).catch(e => console.error('maintenance-nsfw', e));
+        import('./maintenance-nsfw.js').then(m => m.init()).catch(e => console.error('maintenance-nsfw', e));
     } else if (page === 'maintenance-logs') {
         document.getElementById('page-title').textContent = i18nT('maintenance.logs.page_title', 'Log viewer');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.logs.subtitle', 'Realtime tail of every backend log source');
-        import('./maintenance-logs.ts').then(m => m.init()).catch(e => console.error('maintenance-logs', e));
+        import('./maintenance-logs.js').then(m => m.init()).catch(e => console.error('maintenance-logs', e));
     } else if (page === 'maintenance-backup') {
         document.getElementById('page-title').textContent = i18nT('maintenance.backup.page_title', 'Backup destinations');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.backup.subtitle', 'Mirror new downloads to S3 / SFTP / local NAS storage');
-        import('./maintenance-backup.ts').then(m => m.init()).catch(e => console.error('maintenance-backup', e));
+        import('./maintenance-backup.js').then(m => m.init()).catch(e => console.error('maintenance-backup', e));
     } else if (page === 'maintenance-ai') {
         document.getElementById('page-title').textContent = i18nT('maintenance.ai.title', 'AI Search & Smart Organisation');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.ai.subtitle', 'Local-only image embeddings, face clustering, perceptual dedup, and auto-tagging.');
-        import('./maintenance-ai.ts').then(m => m.init()).catch(e => console.error('maintenance-ai', e));
+        import('./maintenance-ai.js').then(m => m.init()).catch(e => console.error('maintenance-ai', e));
     }
 }
 
@@ -1483,7 +1483,7 @@ function renderRescueBadge(file) {
 }
 
 // In-place selection toggle. Used by long-press (touch) and the
-// fallback select-mode click in app.ts's grid delegation. Desktop
+// fallback select-mode click in app.js's grid delegation. Desktop
 // gestures (Ctrl/Shift/lasso/Ctrl+A) live in gallery-select.js and
 // flip the same state without going through here. No grid re-render —
 // just toggle `.is-selected` on the matching tile.

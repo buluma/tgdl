@@ -1,7 +1,7 @@
 // Browser notifications. Opt-in: the user explicitly enables in Settings.
 // We throttle so a fast queue doesn't spam the system tray.
 
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
 
 const KEY = 'tgdl-notifications-enabled';
 

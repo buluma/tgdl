@@ -16,13 +16,13 @@
 // View state (tier + page + whitelisted toggle) lives in the URL hash so
 // refresh / back-button restore the operator's filter context.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast, escapeHtml } from './utils.ts';
-import { confirmSheet } from './sheet.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { loadAdvanced, setupAutoSave } from './settings.ts';
-import { openMediaViewerForReview } from './viewer.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast, escapeHtml } from './utils.js';
+import { confirmSheet } from './sheet.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { loadAdvanced, setupAutoSave } from './settings.js';
+import { openMediaViewerForReview } from './viewer.js';
 
 const $ = (id) => document.getElementById(id);
 

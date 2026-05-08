@@ -33,7 +33,7 @@ function _toastAdminOnly(msg) {
     }, 1500);
     try {
         // Lazy import to avoid a circular dep at module-eval time.
-        import('./utils.ts').then(({ showToast }) => showToast(msg));
+        import('./utils.js').then(({ showToast }) => showToast(msg));
     } catch {
         /* ignore */
     }

@@ -13,7 +13,7 @@
 //   });
 //   handle.close();
 
-import { t as i18nT } from './i18n.ts';
+import { t as i18nT } from './i18n.js';
 
 const FOCUSABLE_SELECTOR = [
     'a[href]', 'button:not([disabled])', 'input:not([disabled]):not([type="hidden"])',

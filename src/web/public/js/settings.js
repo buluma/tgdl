@@ -1,17 +1,17 @@
-import { api } from './api.ts';
-import { showToast, escapeHtml } from './utils.ts';
-import * as Notifications from './notifications.ts';
-import * as Fonts from './fonts.ts';
-import { ws } from './ws.ts';
-import { wireJobButton } from './job-buttons.ts';
+import { api } from './api.js';
+import { showToast, escapeHtml } from './utils.js';
+import * as Notifications from './notifications.js';
+import * as Fonts from './fonts.js';
+import { ws } from './ws.js';
+import { wireJobButton } from './job-buttons.js';
 
 // Tracks whether the font <select> has already had its options +
 // change-listener wired this session. Re-populating on every
 // loadSettings() open is harmless (sets innerHTML to identical markup)
 // but the listener flag prevents stacking duplicate change handlers.
 let _fontPickerWired = false;
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { openSheet, confirmSheet, promptSheet } from './sheet.ts';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { openSheet, confirmSheet, promptSheet } from './sheet.js';
 
 export async function loadSettings() {
     try {
@@ -837,7 +837,7 @@ function _setAutosaveStatus(state, msg) {
 // importing it lazily keeps the settings module stand-alone in tests.
 async function _notifyAutoSave(level, msg) {
     try {
-        const { pushLogToNotify } = await import('./header-mobile.ts');
+        const { pushLogToNotify } = await import('./header-mobile.js');
         pushLogToNotify({ ts: Date.now(), source: 'settings', level, msg });
     } catch { /* bell not available (e.g. tests / cold-load race) — silent */ }
 }
@@ -1264,7 +1264,7 @@ function wireMaintenance() {
 
 let _nsfwModulePromise = null;
 function _nsfwModule() {
-    if (!_nsfwModulePromise) _nsfwModulePromise = import('./nsfw-ui.ts');
+    if (!_nsfwModulePromise) _nsfwModulePromise = import('./nsfw-ui.js');
     return _nsfwModulePromise;
 }
 
@@ -1318,7 +1318,7 @@ async function maintInstallUpdate() {
         return;
     }
     try {
-        const m = await import('./statusbar.ts');
+        const m = await import('./statusbar.js');
         if (typeof m._openUpdateChooser === 'function') {
             await m._openUpdateChooser(latest, releaseUrl);
         }
@@ -1395,7 +1395,7 @@ async function _maintRebuildThumbs() {
 
 async function maintManageShares() {
     try {
-        const m = await import('./share.ts');
+        const m = await import('./share.js');
         await m.openAllSharesSheet();
     } catch (e) {
         console.error('shares sheet load:', e);
@@ -1711,7 +1711,7 @@ function wireMaintenanceJobToasts() {
             // Persist failures to the bell so the operator sees them after
             // the toast auto-dismisses (especially relevant for jobs that
             // started on another device).
-            import('./header-mobile.ts').then((mod) => mod.pushLogToNotify({
+            import('./header-mobile.js').then((mod) => mod.pushLogToNotify({
                 level: 'error',
                 source: 'verify',
                 msg,
@@ -1725,7 +1725,7 @@ function wireMaintenanceJobToasts() {
             { scanned, pruned },
             `Verified ${scanned} files — pruned ${pruned} missing rows`);
         showToast(msg, pruned > 0 ? 'warning' : 'success');
-        import('./header-mobile.ts').then((mod) => mod.pushLogToNotify({
+        import('./header-mobile.js').then((mod) => mod.pushLogToNotify({
             level: pruned > 0 ? 'warn' : 'info',
             source: 'verify',
             msg,

@@ -15,11 +15,11 @@
 //
 // Idempotent init() — safe to re-call when the page is re-mounted.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast, escapeHtml } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { bindSearchUi, refreshChips } from './ai-search.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast, escapeHtml } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { bindSearchUi, refreshChips } from './ai-search.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -346,7 +346,7 @@ async function _applyModel(cap, modelId) {
 
 async function _wipeModel(cap, modelId) {
     if (!modelId) return;
-    const { confirmSheet } = await import('./sheet.ts');
+    const { confirmSheet } = await import('./sheet.js');
     const ok = await confirmSheet({
         title: i18nT('maintenance.ai.model.swap.wipe_title', 'Wipe cached weights?'),
         body: i18nTf('maintenance.ai.model.swap.wipe_confirm',

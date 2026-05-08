@@ -11,10 +11,10 @@
 // keep their muscle memory: /maintenance/duplicates, /maintenance/nsfw,
 // etc. all still resolve directly to those pages.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { escapeHtml } from './utils.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { escapeHtml } from './utils.js';
 
 let _wired = false;
 let _wsWired = false;

@@ -21,9 +21,9 @@
 //   - i18n-keyed labels with raw-text fallbacks, like every other
 //     module in this SPA.
 
-import { openSheet } from './sheet.ts';
-import { showToast, escapeHtml } from './utils.ts';
-import { t as i18nT } from './i18n.ts';
+import { openSheet } from './sheet.js';
+import { showToast, escapeHtml } from './utils.js';
+import { t as i18nT } from './i18n.js';
 
 let _inFlight = null; // Promise<'retry'|'cancel'> while a modal is open
 

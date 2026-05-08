@@ -8,8 +8,8 @@
 // the rest of the session. On a WS reconnect we re-fetch to catch
 // up on anything that happened during the disconnect.
 
-import { api } from './api.ts';
-import { ws } from './ws.ts';
+import { api } from './api.js';
+import { ws } from './ws.js';
 
 let inFlight = false;
 let latest = null;

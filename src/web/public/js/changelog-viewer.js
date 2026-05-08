@@ -7,8 +7,8 @@
  * Cross-platform: pure DOM, no third-party deps.
  */
 
-import { openSheet } from './sheet.ts';
-import { t as i18nT } from './i18n.ts';
+import { openSheet } from './sheet.js';
+import { t as i18nT } from './i18n.js';
 
 let _cache = null;
 

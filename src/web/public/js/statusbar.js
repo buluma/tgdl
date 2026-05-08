@@ -1,11 +1,11 @@
 // Sticky status bar — runtime state, queue, active workers, disk usage, WS link.
 
-import { api } from './api.ts';
-import { ws } from './ws.ts';
-import { formatBytes, showToast } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { subscribe as subscribeMonitorStatus, refreshNow as refreshMonitorStatus } from './monitor-status.ts';
-import { openSheet, confirmSheet } from './sheet.ts';
+import { api } from './api.js';
+import { ws } from './ws.js';
+import { formatBytes, showToast } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { subscribe as subscribeMonitorStatus, refreshNow as refreshMonitorStatus } from './monitor-status.js';
+import { openSheet, confirmSheet } from './sheet.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -41,7 +41,7 @@ function applyMonitor(mon) {
     // queue tab already has its own badge sourced from queue.js (which
     // counts queued + active jobs by polling the queue snapshot); this
     // one mirrors the same idea but reads from /api/monitor/status so
-    // it works even when queue.ts's WS-driven store hasn't booted.
+    // it works even when queue.js's WS-driven store hasn't booted.
     const navBadge = $('engine-nav-badge');
     if (navBadge) {
         const total = (Number(mon.queue) || 0) + (Number(mon.active) || 0);

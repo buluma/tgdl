@@ -30,10 +30,10 @@
 //       onDone: (msg) => showToast(...),
 //   });
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast } from './utils.ts';
-import { t as i18nT } from './i18n.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast } from './utils.js';
+import { t as i18nT } from './i18n.js';
 
 // Registry so we can hydrate every wired button on init / WS reconnect
 // without each caller having to remember to do it. Idempotent — wiring a

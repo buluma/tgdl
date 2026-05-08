@@ -18,11 +18,11 @@
 // GET, so a row that watchtower failed to recreate surfaces here without
 // waiting for the next process restart.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { _openUpdateChooser } from './statusbar.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { _openUpdateChooser } from './statusbar.js';
 
 const $ = (id) => document.getElementById(id);
 

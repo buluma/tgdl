@@ -9,9 +9,9 @@
 // scan/cancel button, model-status pill, and the unseen-candidates
 // badge that dismisses itself once the operator visits the page.
 
-import { api } from './api.ts';
-import { showToast } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
+import { api } from './api.js';
+import { showToast } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
 
 const LS_LAST_SEEN = 'tgdl.nsfw.lastSeen';
 // Re-read on every refresh so the badge dismisses promptly when the

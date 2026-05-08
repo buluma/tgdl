@@ -8,8 +8,8 @@
 // for a single search result we render our own minimal sheet so the
 // search experience stays fast + self-contained.
 
-import { escapeHtml } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
+import { escapeHtml } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
 
 let _modalEl = null;
 let _ctx = null;

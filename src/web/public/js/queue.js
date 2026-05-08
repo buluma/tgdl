@@ -13,12 +13,12 @@
 // nav badge stay in sync even when the page isn't visible) and
 // showQueuePage(params) on every #/queue navigation.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast, escapeHtml, formatBytes, getFileIcon } from './utils.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
-import { getGroupName } from './store.ts';
-import { confirmSheet } from './sheet.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast, escapeHtml, formatBytes, getFileIcon } from './utils.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
+import { getGroupName } from './store.js';
+import { confirmSheet } from './sheet.js';
 
 // ============ Constants ============
 //
@@ -731,7 +731,7 @@ function renderRows() {
             : 'documents';
         const ext = (fp.split('.').pop() || '').toLowerCase();
         try {
-            // Stash the synthetic file in window so app.ts's viewer can
+            // Stash the synthetic file in window so app.js's viewer can
             // pick it up. Falls back to a direct in-tab open if the
             // viewer isn't on the page (defensive).
             const file = {

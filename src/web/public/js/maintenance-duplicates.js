@@ -11,11 +11,11 @@
 //   - Bulk-select shortcuts (keep oldest / keep newest / select-all).
 //   - Live dedup_progress + reindex_progress / reindex_done WS handlers.
 
-import { ws } from './ws.ts';
-import { api } from './api.ts';
-import { showToast, escapeHtml } from './utils.ts';
-import { confirmSheet } from './sheet.ts';
-import { t as i18nT, tf as i18nTf } from './i18n.ts';
+import { ws } from './ws.js';
+import { api } from './api.js';
+import { showToast, escapeHtml } from './utils.js';
+import { confirmSheet } from './sheet.js';
+import { t as i18nT, tf as i18nTf } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
