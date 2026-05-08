@@ -1,7 +1,7 @@
 name: Notify Telegram
 
 # Posts a message to the configured Telegram chat on:
-#   - every push to main (commit summary)
+#   - every push to master (commit summary)
 #   - every published release (release notes, with a pre-release badge)
 #
 # Required repo secrets:
@@ -10,7 +10,7 @@ name: Notify Telegram
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   release:
     types: [published]
 

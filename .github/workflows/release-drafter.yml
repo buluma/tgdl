@@ -1,12 +1,12 @@
 name: Release drafter
 
-# Maintains an always-updated draft of the next release in the GitHub
+# mastertains an always-updated draft of the next release in the GitHub
 # Releases tab. Each merged PR is appended to the draft under the right
 # Conventional-Commits category. Pushing a `v*` tag promotes the draft.
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
     types: [opened, reopened, synchronize, edited]
   workflow_dispatch:
