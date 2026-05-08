@@ -36,7 +36,9 @@ import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import crypto from 'crypto';
 import { createReadStream } from 'fs';
 
-import { CHECKSUM_ALGO, CHECKSUM_VERSION, CHECKSUM_HEX_LENGTH, CHECKSUM_HEX_RE } from './checksum.js';
+const _ext = import.meta.url.endsWith('.ts') ? 'ts' : 'js';
+const { CHECKSUM_ALGO, CHECKSUM_VERSION, CHECKSUM_HEX_LENGTH, CHECKSUM_HEX_RE } = 
+    await import(`./checksum.${_ext}`);
 
 export { CHECKSUM_ALGO, CHECKSUM_VERSION, CHECKSUM_HEX_LENGTH, CHECKSUM_HEX_RE };
 
@@ -71,7 +73,7 @@ if (!isMainThread) {
 // ============================================================================
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const WORKER_FILE = path.join(__dirname, 'hash-worker.ts');
+const WORKER_FILE = fileURLToPath(import.meta.url);
 
 const DEFAULT_POOL_SIZE = Math.max(2, Math.floor((os.cpus()?.length || 2) / 2));
 function resolvePoolSize() {

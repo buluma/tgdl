@@ -241,7 +241,7 @@ export function runStateMigration({
  * Exported so unit tests can drive it directly without spinning up the rest
  * of the migration plumbing.
  */
-export function _sanitiseAiModelIds({ kvGet, kvSet, log }: { kvGet?: any; kvSet?: any; log?: any } = {}) {
+export function _sanitiseAiModelIds({ kvGet, kvSet, log = () => {} }: { kvGet?: any; kvSet?: any; log?: any } = {}) {
     const cfg = kvGet('config');
     if (!cfg || typeof cfg !== 'object') return 0;
     const ai = cfg.advanced?.ai;
@@ -286,7 +286,7 @@ export function _reembedOnModelChange({
     kvGet,
     listEmbeddingModels,
     clearStaleEmbeddings,
-    log,
+    log = () => {},
 }: any = {}) {
     const cfg = kvGet('config');
     const explicit = cfg?.advanced?.ai?.embeddings?.model;
