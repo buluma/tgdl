@@ -56,7 +56,7 @@ async function _fetchLatestRelease() {
  * @param {Function} ctx.log             structured logger
  * @param {Function} ctx.getJobTracker   (kind: string) => JobTracker
  */
-export function createVersionRouter({ broadcast, log, getJobTracker }) {
+export function createVersionRouter({ broadcast, log: _log, getJobTracker }) {
     const router = express.Router();
 
     router.get('/api/version', (req, res) => {

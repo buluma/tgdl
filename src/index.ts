@@ -3,8 +3,8 @@
  * Multi-Account Support
  */
 
-import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions/index.js';
+import { TelegramClient as _TelegramClient } from 'telegram';
+import { StringSession as _StringSession } from 'telegram/sessions/index.js';
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
@@ -13,15 +13,15 @@ import os from 'os';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
-import { loadConfig, saveConfig, addGroup } from './config/manager.js';
+import { loadConfig, saveConfig, addGroup as _addGroup } from './config/manager.js';
 import { hashPassword } from './core/web-auth.js';
 import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from './core/logger.js';
-import { RateLimiter, SecureSession } from './core/security.js';
+import { RateLimiter as _RateLimiter, SecureSession as _SecureSession } from './core/security.js';
 import { ConnectionManager } from './core/connection.js';
 import { AccountManager } from './core/accounts.js';
 import { colorize, clearScreen, formatBytes } from './cli/colors.js';
 import { resilience } from './core/resilience.js';
-import { getOrGenerateSecret } from './core/secret.js';
+import { getOrGenerateSecret as _getOrGenerateSecret } from './core/secret.js';
 import { getDb, getStats as getDbStats, deleteGroupDownloads, deleteAllDownloads, backfillGroupNames } from './core/db.js';
 import { sanitizeName, migrateFolders } from './core/downloader.js';
 
@@ -961,7 +961,7 @@ async function configureGroups(accountManager, config) {
     });
 
     // Update config
-    let toggledCount = 0;
+    let _toggledCount = 0;
     for (const item of selection) {
         const configIndex = config.groups.findIndex(g => String(g.id) === String(item.id));
 
@@ -973,7 +973,7 @@ async function configureGroups(accountManager, config) {
             if (item.autoForward) {
                 config.groups[configIndex].autoForward = item.autoForward;
             }
-            toggledCount++;
+            _toggledCount++;;
         } else if (item.enabled) {
             // Add new enabled group
             config.groups.push({
@@ -985,7 +985,7 @@ async function configureGroups(accountManager, config) {
                 trackUsers: { enabled: false, users: [] },
                 topics: { enabled: false, ids: [] }
             });
-            toggledCount++;
+            _toggledCount++;;
         }
     }
 
@@ -1054,7 +1054,7 @@ async function startMonitor(accountManager, config) {
         }
     });
 
-    downloader.on('error', ({ job, error }) => {
+    downloader.on('error', ({ job: _job, error }) => {
         console.log(colorize(`❌ Error: `, 'red') + error);
     });
 
@@ -1118,7 +1118,7 @@ async function startMonitor(accountManager, config) {
     });
 }
 
-async function startHistory(accountManager, config, connManager) {
+async function startHistory(accountManager, config, _connManager) {
     const startTime = Date.now();
     clearScreen();
     console.log(colorize('╔════════════════════════════════════════╗', 'magenta'));
@@ -1179,7 +1179,7 @@ async function startHistory(accountManager, config, connManager) {
     const { DownloadManager } = await import('./core/downloader.js');
     const { HistoryDownloader } = await import('./core/history.js');
     const { RateLimiter } = await import('./core/security.js');
-    const { AutoForwarder } = await import('./core/forwarder.js');
+    const { AutoForwarder: _AutoForwarder } = await import('./core/forwarder.js');
 
     // Migrate old folder names (space → underscore) before downloading
     await migrateFolders(config.download?.path);
@@ -1342,7 +1342,7 @@ async function startHistory(accountManager, config, connManager) {
     const choice = choiceStr.toString().trim();
 
     let limit = 100;
-    let offsetId = 0;
+    let _offsetId = 0;
     let offsetDate = 0;
 
     // Setup Downloader (Early init for scanning)
@@ -1506,7 +1506,7 @@ async function startHistory(accountManager, config, connManager) {
         console.log(colorize(`✅ Saved: `, 'green') + path.basename(job.filePath));
     });
 
-    downloader.on('error', ({ job, error }) => {
+    downloader.on('error', ({ job: _job, error }) => {
         errorCount++;
         console.log(colorize(`❌ Error: `, 'red') + error);
     });

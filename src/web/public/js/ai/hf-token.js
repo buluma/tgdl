@@ -1,6 +1,6 @@
 // HuggingFace access token: input + reveal + test + autosave.
 
-import { aiGet, aiPost, withButton, toastError } from './api.js';
+import { aiGet, aiPost, withButton } from './api.js';
 import { showToast, escapeHtml } from '../utils.js';
 import { t as i18nT, tf as i18nTf } from '../i18n.js';
 

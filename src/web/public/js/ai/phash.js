@@ -2,7 +2,7 @@
 
 import { aiGet } from './api.js';
 import { escapeHtml } from '../utils.js';
-import { t as i18nT, tf as i18nTf } from '../i18n.js';
+import { tf as i18nTf } from '../i18n.js';
 
 const WRAP_ID = 'ai-phash-groups';
 const EMPTY_ID = 'ai-phash-empty';

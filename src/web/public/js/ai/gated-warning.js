@@ -4,7 +4,7 @@
 
 import { aiPost, withButton, toastError } from './api.js';
 import { showToast, escapeHtml } from '../utils.js';
-import { t as i18nT, tf as i18nTf } from '../i18n.js';
+import { t as i18nT } from '../i18n.js';
 import { get, on } from './state.js';
 
 const ROOT_ID = 'ai-gated-warning';

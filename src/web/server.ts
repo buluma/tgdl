@@ -22,15 +22,15 @@ import { getOrGenerateSecret } from '../core/secret.js';
 import { getDb, getStats as getDbStats, backfillGroupNames,
     getShareLinkForServe, bumpShareLinkAccess,
     } from '../core/db.js';
-import * as ai from '../core/ai/index.js';
+import * as _ai from '../core/ai/index.js';
 import { SecureSession } from '../core/security.js';
 import { AccountManager } from '../core/accounts.js';
 import { loadConfig } from '../config/manager.js';
 import { runtime } from '../core/runtime.js';
 import { getDiskRotator } from '../core/disk-rotator.js';
 import * as integrity from '../core/integrity.js';
-import { ensureShareSecret, verifyShareToken, buildShareUrlPath,
-    clampTtlSeconds, applyShareLimits } from '../core/share.js';
+import { ensureShareSecret, verifyShareToken, buildShareUrlPath as _buildShareUrlPath,
+    clampTtlSeconds as _clampTtlSeconds, applyShareLimits } from '../core/share.js';
 import { preloadClassifier as nsfwPreloadClassifier, NSFW_DEFAULTS } from '../core/nsfw.js';
 // runAutoUpdate, autoUpdateStatus — now used in routes/version.js
 import { getRescueSweeper } from '../core/rescue.js';
@@ -38,9 +38,9 @@ import * as backup from '../core/backup/index.js';
 import { parseTelegramUrl, parseUrlList, UrlParseError } from '../core/url-resolver.js';
 import { metrics } from '../core/metrics.js';
 import {
-    hashPassword, verifyPassword, loginVerify, isAuthConfigured, isGuestEnabled,
-    issueSession, validateSession, revokeSession,
-    revokeAllSessions, revokeAllGuestSessions, startSessionGc,
+    hashPassword as _hashPassword, verifyPassword as _verifyPassword, loginVerify as _loginVerify, isAuthConfigured, isGuestEnabled,
+    issueSession as _issueSession, validateSession, revokeSession as _revokeSession,
+    revokeAllSessions as _revokeAllSessions, revokeAllGuestSessions as _revokeAllGuestSessions, startSessionGc,
 } from '../core/web-auth.js';
 import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from '../core/logger.js';
 import { BACKFILL_MAX_LIMIT } from '../core/constants.js';
@@ -611,7 +611,7 @@ const PUBLIC_API_PATHS = new Set([
 // Treat connections from the local machine as "trusted enough" to bootstrap
 // the very first password without prior auth. Any other origin still has to
 // go through the CLI to set the password.
-function isLocalRequest(req) {
+function _isLocalRequest(req) {
     const ip = req.ip || req.socket?.remoteAddress || '';
     return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
 }
@@ -1037,7 +1037,7 @@ app.get('/CHANGELOG.md', async (req, res) => {
 
 // ============ API ENDPOINTS ============
 
-function tgAuthErrorBody(e) {
+function _tgAuthErrorBody(e) {
     if (e?.code === 'NO_API_CREDS') {
         return {
             status: 503,

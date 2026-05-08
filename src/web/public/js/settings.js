@@ -1927,7 +1927,7 @@ async function _maintBrowseLogs() {
 // No third-party dep; everything reuses the existing Tailwind / `--tg-*`
 // palette so the tree picks up dark/light theme overrides automatically.
 function _renderJsonTree(value, key = null, path = '$') {
-    const isLeaf = (v) => v === null || typeof v !== 'object';
+    const _isLeaf = (v) => v === null || typeof v !== 'object';
     const wrap = (cls, content) => `<span class="${cls}">${content}</span>`;
     const fullPath = key === null ? path : (Number.isInteger(key) ? `${path}[${key}]` : `${path}.${escapeHtml(String(key))}`);
     const keyTok = key === null

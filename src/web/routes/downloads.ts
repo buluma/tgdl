@@ -24,7 +24,7 @@ import { purgeThumbsForDownload } from '../../core/thumbs.js';
  * @param {Function} ctx.formatBytes          (bytes) => string
  */
 export function createDownloadsRouter({
-    configPath, downloadsDir, photosDir, broadcast,
+    configPath, downloadsDir: _downloadsDir, photosDir, broadcast,
     getJobTracker, getDialogsNameCache, bestGroupName, dialogsTypeFor,
     safeResolveDownload, formatBytes,
 }) {

@@ -1,4 +1,4 @@
-import Database, { type Database as DatabaseType } from 'better-sqlite3';
+import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';

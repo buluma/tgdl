@@ -1,7 +1,6 @@
 // Master AI on/off toggle.
 
-import { aiPost } from './api.js';
-import { withButton, toastError } from './api.js';
+import { aiPost, toastError } from './api.js';
 import { showToast } from '../utils.js';
 import { t as i18nT } from '../i18n.js';
 import { update, get, on } from './state.js';

@@ -56,11 +56,16 @@ export default [
         plugins: { '@typescript-eslint': tsPlugin },
         rules: {
             ...tsPlugin.configs.recommended.rules,
-            '@typescript-eslint/no-explicit-any': 'warn',
+            // Post-migration: 262 `any` usages remain from the JS era.
+            // Turn off the lint noise; tighten via tsconfig `strict` flags
+            // incrementally as each module gets proper types.
+            '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/no-unused-vars': ['warn', {
                 argsIgnorePattern: '^_',
                 varsIgnorePattern: '^_',
                 caughtErrors: 'none',
+                destructuredArrayIgnorePattern: '^_',
+                ignoreRestSiblings: true,
             }],
             'no-empty': ['warn', { allowEmptyCatch: true }],
             '@typescript-eslint/ban-ts-comment': 'off',
