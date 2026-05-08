@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { _internals } from '../../src/core/ai/embeddings.js';
+import { _internals } from '../../src/core/ai/embeddings.ts';
 
 const { toFloat32 } = _internals;
 

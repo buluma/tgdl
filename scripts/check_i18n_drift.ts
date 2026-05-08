@@ -33,7 +33,7 @@ function walkJs(dir, out = []) {
         const p = join(dir, name);
         const s = statSync(p);
         if (s.isDirectory()) walkJs(p, out);
-        else if (name.endsWith('.js')) out.push(p);
+        else if (name.endsWith('.ts')) out.push(p);
     }
     return out;
 }

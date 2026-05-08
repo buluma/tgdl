@@ -3,11 +3,11 @@
  * v1.1 Refined Code
  */
 
-import { NewMessage, Raw } from 'telegram/events/index.js';
+import { NewMessage, Raw } from 'telegram/events/index.ts';
 import { Api } from 'telegram';
 import { EventEmitter } from 'events';
-import { colorize } from '../cli/colors.js';
-import { sanitizeName } from './downloader.js';
+import { colorize } from '../cli/colors.ts';
+import { sanitizeName } from './downloader.ts';
 
 // Kenyan local time (UTC+3) - readable format
 const ts = () => {
@@ -15,8 +15,8 @@ const ts = () => {
     const opt = { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
     return new Intl.DateTimeFormat('en-KE', opt).format(d).replace(/,/, '');
 };
-import { markRescued } from './db.js';
-import { effectiveRescueMs } from './rescue.js';
+import { markRescued } from './db.ts';
+import { effectiveRescueMs } from './rescue.ts';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -160,7 +160,7 @@ export class RealtimeMonitor extends EventEmitter {
         this.linkedChatMap = new Map();    // normalizedLinkedChatId -> { group, rawId }
 
         // Migrate old unsanitized folder names (space → underscore)
-        const { migrateFolders } = await import('./downloader.js');
+        const { migrateFolders } = await import('./downloader.ts');
         await migrateFolders(this.config.download?.path);
         
         // Start URL Batch Writer
@@ -250,7 +250,7 @@ export class RealtimeMonitor extends EventEmitter {
             const enabled = histCfg.autoCatchUp !== false;          // default ON
             const threshold = Math.max(1, Number(histCfg.autoCatchUpThreshold) || 5);
             if (enabled) {
-                const { getMessageIdRange } = await import('./db.js');
+                const { getMessageIdRange } = await import('./db.ts');
                 for (const group of enabledGroups) {
                     if (!group.enabled) continue;
                     const top = _topPerGroup.get(String(group.id));

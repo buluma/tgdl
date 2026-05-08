@@ -1,5 +1,5 @@
 import express from 'express';
-import { listUserStories, listAllStories, storyToJob } from '../../core/stories.js';
+import { listUserStories, listAllStories, storyToJob } from '../../core/stories.ts';
 
 function tgAuthErrorBody(e) {
     if (e?.code === 'NO_API_CREDS') {
@@ -63,8 +63,8 @@ export function createStoriesRouter({ getAccountManager, runtime, loadConfig }) 
             const wanted = new Set(storyIds.map(Number));
             const matched = stories.filter(s => wanted.has(Number(s.id)));
 
-            const { DownloadManager } = await import('../../core/downloader.js');
-            const { RateLimiter } = await import('../../core/security.js');
+            const { DownloadManager } = await import('../../core/downloader.ts');
+            const { RateLimiter } = await import('../../core/security.ts');
             const config = loadConfig();
             const standalone = !runtime._downloader;
             const downloader = runtime._downloader || new DownloadManager(client, config, new RateLimiter(config.rateLimits));

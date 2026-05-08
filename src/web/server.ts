@@ -16,50 +16,50 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions/index.js';
+import { StringSession } from 'telegram/sessions/index.ts';
 import crypto from 'crypto';
 
-import { getOrGenerateSecret } from '../core/secret.js';
+import { getOrGenerateSecret } from '../core/secret.ts';
 import { getDb, getStats as getDbStats, backfillGroupNames,
     getShareLinkForServe, bumpShareLinkAccess,
-    } from '../core/db.js';
-import * as ai from '../core/ai/index.js';
-import { SecureSession } from '../core/security.js';
-import { AccountManager } from '../core/accounts.js';
-import { loadConfig } from '../config/manager.js';
-import { runtime } from '../core/runtime.js';
-import { getDiskRotator } from '../core/disk-rotator.js';
-import * as integrity from '../core/integrity.js';
+    } from '../core/db.ts';
+import * as ai from '../core/ai/index.ts';
+import { SecureSession } from '../core/security.ts';
+import { AccountManager } from '../core/accounts.ts';
+import { loadConfig } from '../config/manager.ts';
+import { runtime } from '../core/runtime.ts';
+import { getDiskRotator } from '../core/disk-rotator.ts';
+import * as integrity from '../core/integrity.ts';
 import { ensureShareSecret, verifyShareToken, buildShareUrlPath,
-    clampTtlSeconds, applyShareLimits } from '../core/share.js';
-import { preloadClassifier as nsfwPreloadClassifier, NSFW_DEFAULTS } from '../core/nsfw.js';
+    clampTtlSeconds, applyShareLimits } from '../core/share.ts';
+import { preloadClassifier as nsfwPreloadClassifier, NSFW_DEFAULTS } from '../core/nsfw.ts';
 // runAutoUpdate, autoUpdateStatus — now used in routes/version.js
-import { getRescueSweeper } from '../core/rescue.js';
-import * as backup from '../core/backup/index.js';
-import { parseTelegramUrl, parseUrlList, UrlParseError } from '../core/url-resolver.js';
-import { metrics } from '../core/metrics.js';
+import { getRescueSweeper } from '../core/rescue.ts';
+import * as backup from '../core/backup/index.ts';
+import { parseTelegramUrl, parseUrlList, UrlParseError } from '../core/url-resolver.ts';
+import { metrics } from '../core/metrics.ts';
 import {
     hashPassword, verifyPassword, loginVerify, isAuthConfigured, isGuestEnabled,
     issueSession, validateSession, revokeSession,
     revokeAllSessions, revokeAllGuestSessions, startSessionGc,
-} from '../core/web-auth.js';
-import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from '../core/logger.js';
-import { BACKFILL_MAX_LIMIT } from '../core/constants.js';
-import { createJobTracker } from '../core/job-tracker.js';
-import { createShareRouter } from './routes/share.js';
-import { createVersionRouter, _readCurrentVersion } from './routes/version.js';
-import { createAuthRouter } from './routes/auth.js';
-import { createAccountsRouter } from './routes/accounts.js';
-import { createMonitorRouter } from './routes/monitor.js';
-import { createHistoryRouter, createSpawnBackfill, isBackfillActive } from './routes/history.js';
-import { createStoriesRouter } from './routes/stories.js';
-import { createQueueRouter } from './routes/queue.js';
-import { createBackupRouter } from './routes/backup.js';
-import { createAiRouter } from './routes/ai.js';
-import { createMaintenanceRouter } from './routes/maintenance.js';
-import { createDownloadsRouter } from './routes/downloads.js';
-import { createGroupsRouter, bestGroupName } from './routes/groups.js';
-import { createConfigRouter } from './routes/config.js';
+} from '../core/web-auth.ts';
+import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from '../core/logger.ts';
+import { BACKFILL_MAX_LIMIT } from '../core/constants.ts';
+import { createJobTracker } from '../core/job-tracker.ts';
+import { createShareRouter } from './routes/share.ts';
+import { createVersionRouter, _readCurrentVersion } from './routes/version.ts';
+import { createAuthRouter } from './routes/auth.ts';
+import { createAccountsRouter } from './routes/accounts.ts';
+import { createMonitorRouter } from './routes/monitor.ts';
+import { createHistoryRouter, createSpawnBackfill, isBackfillActive } from './routes/history.ts';
+import { createStoriesRouter } from './routes/stories.ts';
+import { createQueueRouter } from './routes/queue.ts';
+import { createBackupRouter } from './routes/backup.ts';
+import { createAiRouter } from './routes/ai.ts';
+import { createMaintenanceRouter } from './routes/maintenance.ts';
+import { createDownloadsRouter } from './routes/downloads.ts';
+import { createGroupsRouter, bestGroupName } from './routes/groups.ts';
+import { createConfigRouter } from './routes/config.ts';
 
 // Demote gramJS reconnect chatter from stderr/stdout to data/logs/network.log.
 // gramJS opens a fresh DC connection per file download (different DCs host
@@ -398,7 +398,7 @@ app.use((req, res, next) => {
         // browser to revalidate every chunk through the auth + path-resolve
         // middleware → the source of the playback lag the user reported.
         res.setHeader('Cache-Control', 'private, max-age=2592000, immutable');
-    } else if (p === '/sw.js') {
+    } else if (p === '/sw.ts') {
         // Service worker manifest must never be cached or PWA updates stick.
         // (Future PWA agent may also set this; if so, theirs runs first via
         // a more specific route — leave their version alone.)
@@ -593,7 +593,7 @@ async function writeConfigAtomic(config) {
 // — the browser fetches them before the user has a session cookie.
 const PUBLIC_PATH_PREFIXES = [
     '/login', '/setup-needed', '/css/', '/js/', '/locales/', '/favicon', '/metrics',
-    '/icons/', '/manifest.webmanifest', '/sw.js',
+    '/icons/', '/manifest.webmanifest', '/sw.ts',
     // Share-link public route — auth is the HMAC sig + DB row check inside
     // the handler, NOT the dashboard cookie. Without this prefix, friends
     // following a share URL would be redirected to /login.html.
@@ -752,13 +752,13 @@ async function getAccountManager() {
 // have explicit Content-Type headers (some hosts mis-detect .webmanifest)
 // and the SW gets `Service-Worker-Allowed: /` so it can claim the whole
 // origin even though the script itself lives at a different path.
-app.get('/sw.js', (req, res) => {
+app.get('/sw.ts', (req, res) => {
     res.set('Content-Type', 'application/javascript; charset=utf-8');
     res.set('Service-Worker-Allowed', '/');
     // Don't let intermediaries cache an old SW — the SW is the thing that
     // controls cache behaviour for everything else, so it must update fast.
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+    res.sendFile(path.join(__dirname, 'public', 'sw.ts'));
 });
 
 app.get('/manifest.webmanifest', (req, res) => {
@@ -934,7 +934,7 @@ app.use('/api', guestGate);
 // Serve static files AFTER auth
 // Asset cache-busting — append `?v=<APP_VERSION>` to every internal
 // `<script src="/js/...">` in the SPA HTML AND to every relative
-// `import './X.js'` inside the JS modules themselves. Without it, a
+// `import './X.ts'` inside the JS modules themselves. Without it, a
 // new deploy that doesn't change a file's bytes (or one whose change
 // the browser missed) keeps serving the previously-cached copy from
 // the HTTP cache for the full max-age window. With `?v=` the URL
@@ -965,7 +965,7 @@ function _rewriteHtmlSrc(html) {
 }
 
 function _rewriteJsImports(js) {
-    // Match: `from './X.js'`, `import './X.js'`, `import('./X.js')`.
+    // Match: `from './X.ts'`, `import './X.ts'`, `import('./X.ts')`.
     // Skip any specifier that already carries a query string.
     return js.replace(
         /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])(\.{1,2}\/[^'"?]+\.js)\2/g,
@@ -1001,12 +1001,12 @@ app.use((req, res, next) => {
         if (_serveCacheBusted(file, 'text/html; charset=utf-8', _rewriteHtmlSrc, res)) return;
         return next();
     }
-    // JS modules — rewrite every relative `import './X.js'` so the
+    // JS modules — rewrite every relative `import './X.ts'` so the
     // child URL inherits the same `?v=` and the browser HTTP cache
     // can't stale-serve a single module while the rest of the bundle
     // is fresh. The Cache-Control middleware further up keys off the
     // `?v=` query string to upgrade these to immutable.
-    if (req.path.startsWith('/js/') && req.path.endsWith('.js')) {
+    if (req.path.startsWith('/js/') && req.path.endsWith('.ts')) {
         if (_serveCacheBusted(req.path, 'application/javascript; charset=utf-8', _rewriteJsImports, res)) return;
         return next();
     }
@@ -1260,8 +1260,8 @@ app.post('/api/download/url', async (req, res) => {
         const am = await getAccountManager();
         if (am.count === 0) return res.status(409).json({ error: 'No Telegram accounts loaded' });
 
-        const { DownloadManager } = await import('../core/downloader.js');
-        const { RateLimiter } = await import('../core/security.js');
+        const { DownloadManager } = await import('../core/downloader.ts');
+        const { RateLimiter } = await import('../core/security.ts');
 
         const config = loadConfig();
         const standalone = !runtime._downloader;

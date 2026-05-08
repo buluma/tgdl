@@ -2,8 +2,8 @@ import express from 'express';
 import {
     getDb,
     createShareLink, listShareLinks, revokeShareLink,
-} from '../../core/db.js';
-import { buildShareUrlPath, clampTtlSeconds } from '../../core/share.js';
+} from '../../core/db.ts';
+import { buildShareUrlPath, clampTtlSeconds } from '../../core/share.ts';
 
 function _shareUrlFor(req, linkId, expSec) {
     return `${req.protocol}://${req.get('host')}${buildShareUrlPath(linkId, expSec)}`;

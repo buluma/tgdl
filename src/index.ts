@@ -4,7 +4,7 @@
  */
 
 import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions/index.js';
+import { StringSession } from 'telegram/sessions/index.ts';
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
@@ -13,17 +13,17 @@ import os from 'os';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
-import { loadConfig, saveConfig, addGroup } from './config/manager.js';
-import { hashPassword } from './core/web-auth.js';
-import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from './core/logger.js';
-import { RateLimiter, SecureSession } from './core/security.js';
-import { ConnectionManager } from './core/connection.js';
-import { AccountManager } from './core/accounts.js';
-import { colorize, clearScreen, formatBytes } from './cli/colors.js';
-import { resilience } from './core/resilience.js';
-import { getOrGenerateSecret } from './core/secret.js';
-import { getDb, getStats as getDbStats, deleteGroupDownloads, deleteAllDownloads, backfillGroupNames } from './core/db.js';
-import { sanitizeName, migrateFolders } from './core/downloader.js';
+import { loadConfig, saveConfig, addGroup } from './config/manager.ts';
+import { hashPassword } from './core/web-auth.ts';
+import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from './core/logger.ts';
+import { RateLimiter, SecureSession } from './core/security.ts';
+import { ConnectionManager } from './core/connection.ts';
+import { AccountManager } from './core/accounts.ts';
+import { colorize, clearScreen, formatBytes } from './cli/colors.ts';
+import { resilience } from './core/resilience.ts';
+import { getOrGenerateSecret } from './core/secret.ts';
+import { getDb, getStats as getDbStats, deleteGroupDownloads, deleteAllDownloads, backfillGroupNames } from './core/db.ts';
+import { sanitizeName, migrateFolders } from './core/downloader.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '../data/config.json');
@@ -230,7 +230,7 @@ async function main() {
         console.log(colorize(`   Dashboard: ${url}`, 'green'));
         console.log(colorize('   First run? Open the URL and follow the setup wizard.', 'dim'));
         console.log(colorize('   Power-user CLI: `node src/index.js menu`\n', 'dim'));
-        await import('./web/server.js');
+        await import('./web/server.ts');
         return new Promise(() => {}); // keep alive
     }
 
@@ -368,7 +368,7 @@ async function main() {
             await manageAccounts(accountManager, config);
             break;
         case 'web':
-            await import('./web/server.js');
+            await import('./web/server.ts');
             await new Promise(() => {}); // keep alive
             break;
         case 'purge':
@@ -1013,10 +1013,10 @@ async function startMonitor(accountManager, config) {
     console.log(colorize('╚════════════════════════════════════════╝', 'cyan'));
     console.log();
 
-    const { DownloadManager } = await import('./core/downloader.js');
-    const { RealtimeMonitor } = await import('./core/monitor.js');
-    const { RateLimiter } = await import('./core/security.js');
-    const { AutoForwarder } = await import('./core/forwarder.js');
+    const { DownloadManager } = await import('./core/downloader.ts');
+    const { RealtimeMonitor } = await import('./core/monitor.ts');
+    const { RateLimiter } = await import('./core/security.ts');
+    const { AutoForwarder } = await import('./core/forwarder.ts');
 
     // Migrate old folder names
     await migrateFolders(config.download?.path);
@@ -1176,10 +1176,10 @@ async function startHistory(accountManager, config, connManager) {
     client.setLogLevel('none');
 
     // Import dynamically
-    const { DownloadManager } = await import('./core/downloader.js');
-    const { HistoryDownloader } = await import('./core/history.js');
-    const { RateLimiter } = await import('./core/security.js');
-    const { AutoForwarder } = await import('./core/forwarder.js');
+    const { DownloadManager } = await import('./core/downloader.ts');
+    const { HistoryDownloader } = await import('./core/history.ts');
+    const { RateLimiter } = await import('./core/security.ts');
+    const { AutoForwarder } = await import('./core/forwarder.ts');
 
     // Migrate old folder names (space → underscore) before downloading
     await migrateFolders(config.download?.path);

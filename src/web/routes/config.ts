@@ -1,13 +1,13 @@
 import express from 'express';
 import fs from 'fs/promises';
-import * as ai from '../../core/ai/index.js';
-import * as integrity from '../../core/integrity.js';
-import { applyShareLimits } from '../../core/share.js';
-import { getDiskRotator } from '../../core/disk-rotator.js';
-import { getRescueSweeper } from '../../core/rescue.js';
-import { getRescueStats } from '../../core/db.js';
-import { NSFW_DEFAULTS } from '../../core/nsfw.js';
-import { BACKPRESSURE_CAP_DEFAULT, BACKPRESSURE_MAX_WAIT_MS_DEFAULT } from '../../core/constants.js';
+import * as ai from '../../core/ai/index.ts';
+import * as integrity from '../../core/integrity.ts';
+import { applyShareLimits } from '../../core/share.ts';
+import { getDiskRotator } from '../../core/disk-rotator.ts';
+import { getRescueSweeper } from '../../core/rescue.ts';
+import { getRescueStats } from '../../core/db.ts';
+import { NSFW_DEFAULTS } from '../../core/nsfw.ts';
+import { BACKPRESSURE_CAP_DEFAULT, BACKPRESSURE_MAX_WAIT_MS_DEFAULT } from '../../core/constants.ts';
 
 /**
  * Config read/write and rescue stats routes.

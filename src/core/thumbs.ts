@@ -41,7 +41,7 @@ import { spawn, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import sharp from 'sharp';
-import { getDb } from './db.js';
+import { getDb } from './db.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
@@ -61,7 +61,7 @@ const THUMBS_DIR = path.resolve(PROJECT_ROOT, 'data', 'thumbs');
 //   4. Plain `ffmpeg` and let PATH resolve it.
 const _localRequire = createRequire(import.meta.url);
 let _ffmpegBinResolved = null;
-// Exported via `resolveFfmpegBin` below so server.js's hwaccel-probe
+// Exported via `resolveFfmpegBin` below so server.ts's hwaccel-probe
 // endpoint hits the same resolution logic without duplicating env-var
 // + path-fallback rules.
 function _resolveFfmpegBin() {

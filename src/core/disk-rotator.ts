@@ -24,7 +24,7 @@ import {
     getTotalSizeBytes,
     getOldestDownloads,
     deleteDownloadsBy,
-} from './db.js';
+} from './db.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DOWNLOADS_DIR = path.join(__dirname, '../../data/downloads');

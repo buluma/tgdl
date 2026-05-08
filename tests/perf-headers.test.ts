@@ -22,7 +22,7 @@ function applyCachePolicy(reqPath, query = {}) {
         res.setHeader('Cache-Control', 'private, max-age=86400, stale-while-revalidate=604800');
     } else if (req.path.startsWith('/files/')) {
         res.setHeader('Cache-Control', 'private, max-age=2592000, immutable');
-    } else if (req.path === '/sw.js') {
+    } else if (req.path === '/sw.ts') {
         res.setHeader('Cache-Control', 'no-cache, max-age=0');
     } else if (req.path.startsWith('/js/') || req.path.startsWith('/css/') || req.path.startsWith('/icons/')) {
         if (req.query && req.query.v) {
@@ -44,7 +44,7 @@ describe('cache-control headers', () => {
     });
 
     it('serves /js/app.js with 1y immutable when ?v= is present', () => {
-        const cc = applyCachePolicy('/js/app.js', { v: '2.6.0' });
+        const cc = applyCachePolicy('/js/app.ts', { v: '2.6.0' });
         expect(cc).toMatch(/immutable/);
         expect(cc).toMatch(/max-age=31536000/);
     });
@@ -61,7 +61,7 @@ describe('cache-control headers', () => {
     });
 
     it('serves /sw.js with no-cache', () => {
-        const cc = applyCachePolicy('/sw.js', {});
+        const cc = applyCachePolicy('/sw.ts', {});
         expect(cc).toMatch(/no-cache/);
     });
 
@@ -71,7 +71,7 @@ describe('cache-control headers', () => {
     });
 
     it('serves /js/app.js with conservative 1h fallback when ?v= is missing', () => {
-        const cc = applyCachePolicy('/js/app.js', {});
+        const cc = applyCachePolicy('/js/app.ts', {});
         expect(cc).not.toMatch(/immutable/);
         expect(cc).toMatch(/max-age=3600/);
     });

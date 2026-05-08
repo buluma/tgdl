@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { blobToVector, vectorToBlob, l2Normalize } from '../../src/core/ai/vector-store.js';
+import { blobToVector, vectorToBlob, l2Normalize } from '../../src/core/ai/vector-store.ts';
 
 describe('blobToVector — dim guard', () => {
     it('returns the vector when no expectedDim is given', () => {
@@ -52,7 +52,7 @@ describe('topK — model filter (smoke)', () => {
         // path here. The feature is unit-tested at the listAllImageEmbeddings
         // / clearStaleEmbeddings layer; this case just exercises the guard
         // plumbing on the function shape.
-        const { topK } = await import('../../src/core/ai/vector-store.js');
+        const { topK } = await import('../../src/core/ai/vector-store.ts');
         expect(typeof topK).toBe('function');
     });
 });

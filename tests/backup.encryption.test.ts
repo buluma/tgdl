@@ -8,7 +8,7 @@ import {
     encryptBuffer, decryptBuffer,
     encryptStream, decryptStream,
     MAGIC, VERSION, KEY_LEN,
-} from '../src/core/backup/encryption.js';
+} from '../src/core/backup/encryption.ts';
 
 function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {

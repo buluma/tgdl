@@ -20,8 +20,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { getDb } from './db.js';
-import { sha256OfFile, sha256OfFileViaPool } from './checksum.js';
+import { getDb } from './db.ts';
+import { sha256OfFile, sha256OfFileViaPool } from './checksum.ts';
 
 // Where the downloader writes by default (relative to the project root).
 // `safeResolveDownload`-style resolution lives in server.js; for the CLI

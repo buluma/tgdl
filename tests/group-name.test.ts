@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { state, getGroupName, updateGroupNameCache, isUnresolvedName }
-    from '../src/web/public/js/store.js';
+    from '../src/web/public/js/store.ts';
 
 beforeEach(() => {
     // Reset every slice we touch — store.js is a singleton, so leaks across

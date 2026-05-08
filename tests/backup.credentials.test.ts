@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import crypto from 'crypto';
 import {
     encryptConfig, decryptConfig, looksLikeCredentialsBlob, deriveKek,
-} from '../src/core/backup/credentials.js';
+} from '../src/core/backup/credentials.ts';
 
 function hexSecret() {
     return crypto.randomBytes(32).toString('hex');

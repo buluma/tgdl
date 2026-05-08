@@ -4,21 +4,21 @@ import fsSync, { existsSync } from 'fs';
 import path from 'path';
 import { getDb, deleteGroupDownloads, deleteAllDownloads,
     getNsfwTierCounts, getNsfwHistogram, getNsfwListByTier, getNsfwIdsByTier,
-    reclassifyNsfw, unwhitelistNsfw, NSFW_TIERS } from '../../core/db.js';
-import { sanitizeName } from '../../core/downloader.js';
-import * as integrity from '../../core/integrity.js';
-import { findDuplicates as dedupFindDuplicates, deleteByIds as dedupDeleteByIds } from '../../core/dedup.js';
+    reclassifyNsfw, unwhitelistNsfw, NSFW_TIERS } from '../../core/db.ts';
+import { sanitizeName } from '../../core/downloader.ts';
+import * as integrity from '../../core/integrity.ts';
+import { findDuplicates as dedupFindDuplicates, deleteByIds as dedupDeleteByIds } from '../../core/dedup.ts';
 import { getOrCreateThumb, purgeThumbsForDownload, purgeAllThumbs,
     getThumbsCacheStats, buildAllThumbnails, hasFfmpeg,
-    ALLOWED_WIDTHS as THUMB_WIDTHS } from '../../core/thumbs.js';
+    ALLOWED_WIDTHS as THUMB_WIDTHS } from '../../core/thumbs.ts';
 import { startScan as nsfwStartScan, cancelScan as nsfwCancelScan,
     isScanRunning as nsfwIsScanRunning, getScanState as nsfwGetScanState,
     preloadClassifier as nsfwPreloadClassifier, clearClassifierCache as nsfwClearCache,
     classifierReady as nsfwClassifierReady,
     NSFW_DEFAULTS, getNsfwStats, getNsfwDeleteCandidates,
-    whitelistNsfw } from '../../core/nsfw.js';
-import { isAuthConfigured, loginVerify, revokeAllSessions } from '../../core/web-auth.js';
-import { SESSION_COOKIE_OPTS } from './auth.js';
+    whitelistNsfw } from '../../core/nsfw.ts';
+import { isAuthConfigured, loginVerify, revokeAllSessions } from '../../core/web-auth.ts';
+import { SESSION_COOKIE_OPTS } from './auth.ts';
 
 function tgAuthErrorBody(e) {
     if (e?.code === 'NO_API_CREDS') {
@@ -786,7 +786,7 @@ export function createMaintenanceRouter({
     router.get('/api/maintenance/thumbs/hwaccel-probe', async (req, res) => {
         try {
             const { spawn } = await import('child_process');
-            const thumbs = await import('../../core/thumbs.js');
+            const thumbs = await import('../../core/thumbs.ts');
             const bin = thumbs.resolveFfmpegBin?.() || 'ffmpeg';
             const out = await new Promise((resolve, reject) => {
                 const p = spawn(bin, ['-hide_banner', '-hwaccels'], { windowsHide: true });
@@ -860,7 +860,7 @@ export function createMaintenanceRouter({
         log({ source: 'faststart', level: 'info', msg: 'faststart sweep starting' });
         (async () => {
             try {
-                const { optimizeAll } = await import('../../core/faststart.js');
+                const { optimizeAll } = await import('../../core/faststart.ts');
                 const r = await optimizeAll({
                     onProgress: (p) => {
                         Object.assign(_faststartState, p, { running: true });
@@ -896,7 +896,7 @@ export function createMaintenanceRouter({
 
     router.get('/api/maintenance/faststart/stats', async (req, res) => {
         try {
-            const { getStats } = await import('../../core/faststart.js');
+            const { getStats } = await import('../../core/faststart.ts');
             const r = await getStats();
             res.json({ success: true, ffmpegAvailable: hasFfmpeg(), ...r });
         } catch (e) {

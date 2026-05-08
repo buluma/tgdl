@@ -22,7 +22,7 @@
 import path from 'path';
 import { existsSync, promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
-import { getDb, getUnscannedNsfwBatch, setNsfwResult, getNsfwStats } from './db.js';
+import { getDb, getUnscannedNsfwBatch, setNsfwResult, getNsfwStats } from './db.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
@@ -170,7 +170,7 @@ async function _loadClassifier(cfg, onProgress, onLog) {
                 || null;
             if (!token) {
                 try {
-                    const { loadConfig } = await import('../config/manager.js');
+                    const { loadConfig } = await import('../config/manager.ts');
                     const live = loadConfig();
                     const cfgToken = live?.advanced?.ai?.hfToken;
                     if (typeof cfgToken === 'string' && cfgToken.trim()) {
@@ -481,7 +481,7 @@ async function _drainBg() {
     if (_bgRunning) return;
     _bgRunning = true;
     try {
-        const { loadConfig } = await import('../config/manager.js');
+        const { loadConfig } = await import('../config/manager.ts');
         // Re-resolve config every drain — picks up live changes without
         // a server restart, same pattern as the WASM classifier itself.
         let cfg;
@@ -670,4 +670,4 @@ export { getNsfwStats };
 
 // Expose the underlying DB module via re-export so server.js doesn't
 // have to import from db.js separately just to wire NSFW endpoints.
-export { whitelistNsfw, getNsfwDeleteCandidates } from './db.js';
+export { whitelistNsfw, getNsfwDeleteCandidates } from './db.ts';

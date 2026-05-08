@@ -41,7 +41,7 @@ const FIXTURES = [
 
 beforeAll(async () => {
     process.env.TGDL_DATA_DIR = DATA_DIR;
-    api = await import('../src/core/db.js');
+    api = await import('../src/core/db.ts');
     db = api.getDb();
     for (const f of FIXTURES) {
         api.insertDownload({

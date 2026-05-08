@@ -5,7 +5,7 @@
 // JSON envelope the dashboard can render, and never crashes the process.
 
 import { describe, it, expect, vi } from 'vitest';
-import { makeSafe, HttpError } from '../src/web/lib/safe-route.js';
+import { makeSafe, HttpError } from '../src/web/lib/safe-route.ts';
 
 function fakeRes() {
     const res = {

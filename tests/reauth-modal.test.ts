@@ -46,7 +46,7 @@ beforeEach(async () => {
     _handlerCalls = [];
     _handlerOutcome = 'cancel';
     vi.resetModules();
-    api = (await import('../src/web/public/js/api.js')).api;
+    api = (await import('../src/web/public/js/api.ts')).api;
 });
 
 afterEach(() => {

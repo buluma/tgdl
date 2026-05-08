@@ -45,8 +45,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { getDb } from '../src/core/db.js';
-import { loadConfig, saveConfig } from '../src/config/manager.js';
+import { getDb } from '../src/core/db.ts';
+import { loadConfig, saveConfig } from '../src/config/manager.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..');

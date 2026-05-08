@@ -2,7 +2,7 @@ import express from 'express';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 import path from 'path';
-import { BACKFILL_MAX_LIMIT, HISTORY_JOB_TTL_MS } from '../../core/constants.js';
+import { BACKFILL_MAX_LIMIT, HISTORY_JOB_TTL_MS } from '../../core/constants.ts';
 
 // jobId → { id, state, processed, downloaded, error, group, groupId, limit,
 //           startedAt, finishedAt, cancelled, _runner }
@@ -85,9 +85,9 @@ export function createSpawnBackfill({ dataDir, loadConfig, getAccountManager, ru
         const group = (config.groups || []).find(g => String(g.id) === groupKey);
         if (!group) throw new Error('Group not configured');
 
-        const { HistoryDownloader } = await import('../../core/history.js');
-        const { DownloadManager } = await import('../../core/downloader.js');
-        const { RateLimiter } = await import('../../core/security.js');
+        const { HistoryDownloader } = await import('../../core/history.ts');
+        const { DownloadManager } = await import('../../core/downloader.ts');
+        const { RateLimiter } = await import('../../core/security.ts');
         const standalone = !runtime._downloader;
         const downloader = runtime._downloader || new DownloadManager(
             am.getDefaultClient(), config, new RateLimiter(config.rateLimits),
@@ -195,9 +195,9 @@ export function createHistoryRouter({ dataDir, loadConfig, getAccountManager, ru
             const group = (config.groups || []).find(g => String(g.id) === String(groupId));
             if (!group) return res.status(404).json({ error: 'Group not configured' });
 
-            const { HistoryDownloader } = await import('../../core/history.js');
-            const { DownloadManager } = await import('../../core/downloader.js');
-            const { RateLimiter } = await import('../../core/security.js');
+            const { HistoryDownloader } = await import('../../core/history.ts');
+            const { DownloadManager } = await import('../../core/downloader.ts');
+            const { RateLimiter } = await import('../../core/security.ts');
 
             const standalone = !runtime._downloader;
             const downloader = runtime._downloader || new DownloadManager(

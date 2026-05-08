@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildProxy, describeProxy } from '../src/core/proxy.js';
+import { buildProxy, describeProxy } from '../src/core/proxy.ts';
 
 describe('buildProxy', () => {
     it('returns null when nothing is configured', () => {

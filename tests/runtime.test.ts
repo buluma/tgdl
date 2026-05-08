@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock heavy deps before importing runtime
-vi.mock('../src/core/downloader.js', () => ({
+vi.mock('../src/core/downloader.ts', () => ({
     DownloadManager: vi.fn(() => ({
         on: vi.fn(),
         stop: vi.fn().mockResolvedValue(undefined),
@@ -14,7 +14,7 @@ vi.mock('../src/core/downloader.js', () => ({
     migrateFolders: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../src/core/monitor.js', () => ({
+vi.mock('../src/core/monitor.ts', () => ({
     RealtimeMonitor: vi.fn(() => ({
         on: vi.fn(),
         start: vi.fn().mockResolvedValue(undefined),
@@ -23,20 +23,20 @@ vi.mock('../src/core/monitor.js', () => ({
     })),
 }));
 
-vi.mock('../src/core/security.js', () => ({
+vi.mock('../src/core/security.ts', () => ({
     RateLimiter: vi.fn(() => ({
         on: vi.fn(),
     })),
 }));
 
-vi.mock('../src/core/forwarder.js', () => ({
+vi.mock('../src/core/forwarder.ts', () => ({
     AutoForwarder: vi.fn(() => ({
         process: vi.fn().mockResolvedValue(undefined),
         config: null,
     })),
 }));
 
-vi.mock('../src/core/metrics.js', () => ({
+vi.mock('../src/core/metrics.ts', () => ({
     metrics: {
         set: vi.fn(),
         inc: vi.fn(),
@@ -44,7 +44,7 @@ vi.mock('../src/core/metrics.js', () => ({
     },
 }));
 
-import { runtime } from '../src/core/runtime.js';
+import { runtime } from '../src/core/runtime.ts';
 
 function makeAccountManager(count = 1) {
     return {

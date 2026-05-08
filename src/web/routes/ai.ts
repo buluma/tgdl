@@ -1,11 +1,11 @@
 import express from 'express';
-import * as ai from '../../core/ai/index.js';
+import * as ai from '../../core/ai/index.ts';
 import {
     getDb,
     getAiCounts, listPeople, listPhotosForPerson,
     renamePerson, deletePerson,
     listAllTags, listPhotosForTag,
-} from '../../core/db.js';
+} from '../../core/db.ts';
 
 // Per-capability descriptors used by the model-status endpoint. Mirrors
 // the names the dashboard already uses. The kind is the Transformers.js
@@ -438,13 +438,13 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
             // Pull every embedding (cache-friendly via vector-store.topK
             // re-using the same listing) so we can grab the source row's
             // vector without a new SELECT path.
-            const { listAllImageEmbeddings } = await import('../../core/db.js');
+            const { listAllImageEmbeddings } = await import('../../core/db.ts');
             const rows = listAllImageEmbeddings({ fileTypes: cfg.fileTypes });
             const src = rows.find((r) => r.download_id === downloadId);
             if (!src || !src.embedding) {
                 return res.status(404).json({ error: 'no embedding for that download' });
             }
-            const { blobToVector, topK } = await import('../../core/ai/vector-store.js');
+            const { blobToVector, topK } = await import('../../core/ai/vector-store.ts');
             const vec = blobToVector(src.embedding);
             if (!vec) return res.status(500).json({ error: 'embedding decode failed' });
             // Run topK; remove the source row itself from the result list.

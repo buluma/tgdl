@@ -64,7 +64,7 @@ export function sha256OfFile(absPath) {
  * @returns {Promise<string>}
  */
 export async function sha256OfFileViaPool(absPath) {
-    const mod = await import('./hash-worker.js');
+    const mod = await import('./hash-worker.ts');
     return mod.hashFile(absPath, CHECKSUM_ALGO);
 }
 

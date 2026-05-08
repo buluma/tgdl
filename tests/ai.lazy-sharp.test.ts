@@ -4,7 +4,7 @@
 // symptom — this test locks the lazy-load behaviour in.
 
 import { describe, it, expect } from 'vitest';
-import { tryImport, lazy } from '../src/core/ai/safe-load.js';
+import { tryImport, lazy } from '../src/core/ai/safe-load.ts';
 
 describe('safe-load helpers', () => {
     it('tryImport returns ok:true for a valid module', async () => {
@@ -51,7 +51,7 @@ describe('faces.js imports without sharp on the import path', () => {
         // The very act of completing this import without throwing is the
         // assertion. Pre-rewrite, a missing sharp would crash the whole
         // module graph during ES import.
-        const mod = await import('../src/core/ai/faces.js');
+        const mod = await import('../src/core/ai/faces.ts');
         expect(typeof mod.dbscan).toBe('function');
         expect(typeof mod.detectFaces).toBe('function');
         expect(typeof mod.embedFace).toBe('function');
@@ -60,7 +60,7 @@ describe('faces.js imports without sharp on the import path', () => {
 
 describe('phash.js imports without sharp on the import path', () => {
     it('imports cleanly at module-eval time', async () => {
-        const mod = await import('../src/core/ai/phash.js');
+        const mod = await import('../src/core/ai/phash.ts');
         expect(typeof mod.computePhash).toBe('function');
         expect(typeof mod.hammingDistance).toBe('function');
         expect(typeof mod.groupNearDuplicates).toBe('function');

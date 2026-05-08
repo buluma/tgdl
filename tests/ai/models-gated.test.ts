@@ -12,7 +12,7 @@ import {
     KNOWN_GATED_MODELS,
     suggestPublicReplacement,
     isKnownGatedModel,
-} from '../../src/core/ai/models.js';
+} from '../../src/core/ai/models.ts';
 
 describe('KNOWN_GATED_MODELS', () => {
     it('points every entry at a real capability key', () => {

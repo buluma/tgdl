@@ -5,8 +5,8 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { _reembedOnModelChange } from '../../src/core/state-migration.js';
-import { AI_MODEL_DEFAULTS } from '../../src/core/ai/models.js';
+import { _reembedOnModelChange } from '../../src/core/state-migration.ts';
+import { AI_MODEL_DEFAULTS } from '../../src/core/ai/models.ts';
 
 function fakeKv(initial = {}) {
     const store = { ...initial };

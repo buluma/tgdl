@@ -2,7 +2,7 @@ import Database, { type Database as DatabaseType } from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import type { DownloadRow } from '../types/index.js';
+import type { DownloadRow } from '../types/index.ts';
 
 interface InsertDownloadData {
   groupId: string;

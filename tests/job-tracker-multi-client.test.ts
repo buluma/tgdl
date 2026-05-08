@@ -9,7 +9,7 @@
 // identical order.
 
 import { describe, it, expect } from 'vitest';
-import { createJobTracker } from '../src/core/job-tracker.js';
+import { createJobTracker } from '../src/core/job-tracker.ts';
 
 function flush(ms = 30) {
     return new Promise((res) => setTimeout(res, ms));
@@ -19,7 +19,7 @@ describe('JobTracker multi-client WS contract', () => {
     it('two virtual clients receive every progress + done frame from a slow runFn', async () => {
         const clientA = [];
         const clientB = [];
-        // Mimic server.js's broadcast() which iterates `clients` and
+        // Mimic server.ts's broadcast() which iterates `clients` and
         // sends to each one. We approximate with two sinks.
         const broadcast = (msg) => {
             const cloned = JSON.parse(JSON.stringify(msg));

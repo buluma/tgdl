@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { _sanitiseAiModelIds } from '../../src/core/state-migration.js';
-import { AI_MODEL_DEFAULTS } from '../../src/core/ai/models.js';
+import { _sanitiseAiModelIds } from '../../src/core/state-migration.ts';
+import { AI_MODEL_DEFAULTS } from '../../src/core/ai/models.ts';
 
 // Tiny in-memory kv stub — same surface the migration function expects.
 function fakeKv(initial = {}) {

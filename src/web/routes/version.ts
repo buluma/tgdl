@@ -2,7 +2,7 @@ import express from 'express';
 import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { runAutoUpdate, autoUpdateStatus } from '../../core/updater.js';
+import { runAutoUpdate, autoUpdateStatus } from '../../core/updater.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

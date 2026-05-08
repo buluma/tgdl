@@ -6,7 +6,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 
-import * as health from '../src/core/ai/health.js';
+import * as health from '../src/core/ai/health.ts';
 
 describe('checkSharp', () => {
     it('returns ok:true on a host where sharp is installed', async () => {

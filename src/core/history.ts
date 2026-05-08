@@ -7,8 +7,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import { Api } from 'telegram';
-import { getMessageIdRange } from './db.js';
-import { BACKPRESSURE_CAP_DEFAULT, BACKPRESSURE_MAX_WAIT_MS_DEFAULT } from './constants.js';
+import { getMessageIdRange } from './db.ts';
+import { BACKPRESSURE_CAP_DEFAULT, BACKPRESSURE_MAX_WAIT_MS_DEFAULT } from './constants.ts';
 
 export class HistoryDownloader extends EventEmitter {
     constructor(client, downloader, config, accountManager = null) {
@@ -353,7 +353,7 @@ export class HistoryDownloader extends EventEmitter {
         } catch (error) {
             this.emit('error', error);
             // Re-throw so the Promise returned by downloadHistory rejects.
-            // Without this re-throw, server.js's `.then(...).catch(...)`
+            // Without this re-throw, server.ts's `.then(...).catch(...)`
             // pattern only ever hit `.then()` — no matter how the run
             // failed — and the dashboard would flash a green "Done" pill
             // a few milliseconds after Start. The most common surface

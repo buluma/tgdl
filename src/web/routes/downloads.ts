@@ -3,9 +3,9 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { getDb, getDownloads, getAllDownloads, searchDownloads, deleteDownloadsBy,
-    setDownloadPinned, getDownloadById } from '../../core/db.js';
-import { sanitizeName } from '../../core/downloader.js';
-import { purgeThumbsForDownload } from '../../core/thumbs.js';
+    setDownloadPinned, getDownloadById } from '../../core/db.ts';
+import { sanitizeName } from '../../core/downloader.ts';
+import { purgeThumbsForDownload } from '../../core/thumbs.ts';
 
 /**
  * Downloads listing, search, pin, bulk-delete, bulk-zip, and single-file delete routes.
@@ -353,7 +353,7 @@ export function createDownloadsRouter({
             if (idList.length === 0) return res.status(400).json({ error: 'ids required' });
 
             const { ZipStream, ZIP_MAX_BYTES, ZIP_MAX_ENTRIES, safeArchiveName }
-                = await import('../../core/zip-stream.js');
+                = await import('../../core/zip-stream.ts');
 
             if (idList.length > ZIP_MAX_ENTRIES) {
                 return res.status(413).json({ error: `Too many files in one ZIP (cap ${ZIP_MAX_ENTRIES}). Split into smaller batches.` });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Resilience } from '../src/core/resilience.js';
+import { Resilience } from '../src/core/resilience.ts';
 
 describe('Resilience', () => {
     let r;

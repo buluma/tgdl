@@ -22,7 +22,7 @@
  *     restricted (e.g. some sandboxed runtimes).
  *
  * Usage:
- *   import { hashFile } from './hash-worker.js';
+ *   import { hashFile } from './hash-worker.ts';
  *   const hex = await hashFile('/abs/path/to/file');
  *
  * The pool is lazily created on first call, so importing this module is
@@ -36,7 +36,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import crypto from 'crypto';
 import { createReadStream } from 'fs';
 
-import { CHECKSUM_ALGO, CHECKSUM_VERSION, CHECKSUM_HEX_LENGTH, CHECKSUM_HEX_RE } from './checksum.js';
+import { CHECKSUM_ALGO, CHECKSUM_VERSION, CHECKSUM_HEX_LENGTH, CHECKSUM_HEX_RE } from './checksum.ts';
 
 export { CHECKSUM_ALGO, CHECKSUM_VERSION, CHECKSUM_HEX_LENGTH, CHECKSUM_HEX_RE };
 
@@ -71,7 +71,7 @@ if (!isMainThread) {
 // ============================================================================
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const WORKER_FILE = path.join(__dirname, 'hash-worker.js');
+const WORKER_FILE = path.join(__dirname, 'hash-worker.ts');
 
 const DEFAULT_POOL_SIZE = Math.max(2, Math.floor((os.cpus()?.length || 2) / 2));
 function resolvePoolSize() {

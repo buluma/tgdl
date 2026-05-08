@@ -17,12 +17,12 @@ import path from 'path';
 import { EventEmitter } from 'events';
 import { fileURLToPath } from 'url';
 
-import { DownloadManager } from './downloader.js';
-import { RealtimeMonitor } from './monitor.js';
-import { RateLimiter } from './security.js';
-import { AutoForwarder } from './forwarder.js';
-import { migrateFolders } from './downloader.js';
-import { metrics } from './metrics.js';
+import { DownloadManager } from './downloader.ts';
+import { RealtimeMonitor } from './monitor.ts';
+import { RateLimiter } from './security.ts';
+import { AutoForwarder } from './forwarder.ts';
+import { migrateFolders } from './downloader.ts';
+import { metrics } from './metrics.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '../../data/config.json');

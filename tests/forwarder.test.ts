@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AutoForwarder } from '../src/core/forwarder.js';
+import { AutoForwarder } from '../src/core/forwarder.ts';
 
 function makeClient(overrides = {}) {
     return {

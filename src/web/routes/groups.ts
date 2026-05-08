@@ -2,9 +2,9 @@ import express from 'express';
 import fs from 'fs/promises';
 import fsSync, { existsSync } from 'fs';
 import path from 'path';
-import { getDb } from '../../core/db.js';
-import { getMessageIdRange } from '../../core/db.js';
-import { DIALOG_CACHE_TTL_MS } from '../../core/constants.js';
+import { getDb } from '../../core/db.ts';
+import { getMessageIdRange } from '../../core/db.ts';
+import { DIALOG_CACHE_TTL_MS } from '../../core/constants.ts';
 
 // Mirror of the SPA's `looksUnresolved`. If a name is empty / "Unknown" /
 // the bare numeric id / a "Group ..." placeholder, the caller should
