@@ -85,9 +85,9 @@ export function createSpawnBackfill({ dataDir, loadConfig, getAccountManager, ru
         const group = (config.groups || []).find(g => String(g.id) === groupKey);
         if (!group) throw new Error('Group not configured');
 
-        const { HistoryDownloader } = await import('../../core/history.ts');
-        const { DownloadManager } = await import('../../core/downloader.ts');
-        const { RateLimiter } = await import('../../core/security.ts');
+        const { HistoryDownloader } = await import('../../core/history.js');
+        const { DownloadManager } = await import('../../core/downloader.js');
+        const { RateLimiter } = await import('../../core/security.js');
         const standalone = !runtime._downloader;
         const downloader = runtime._downloader || new DownloadManager(
             am.getDefaultClient(), config, new RateLimiter(config.rateLimits),
@@ -195,9 +195,9 @@ export function createHistoryRouter({ dataDir, loadConfig, getAccountManager, ru
             const group = (config.groups || []).find(g => String(g.id) === String(groupId));
             if (!group) return res.status(404).json({ error: 'Group not configured' });
 
-            const { HistoryDownloader } = await import('../../core/history.ts');
-            const { DownloadManager } = await import('../../core/downloader.ts');
-            const { RateLimiter } = await import('../../core/security.ts');
+            const { HistoryDownloader } = await import('../../core/history.js');
+            const { DownloadManager } = await import('../../core/downloader.js');
+            const { RateLimiter } = await import('../../core/security.js');
 
             const standalone = !runtime._downloader;
             const downloader = runtime._downloader || new DownloadManager(

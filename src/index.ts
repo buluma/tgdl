@@ -230,7 +230,7 @@ async function main() {
         console.log(colorize(`   Dashboard: ${url}`, 'green'));
         console.log(colorize('   First run? Open the URL and follow the setup wizard.', 'dim'));
         console.log(colorize('   Power-user CLI: `node src/index.js menu`\n', 'dim'));
-        await import('./web/server.ts');
+        await import('./web/server.js');
         return new Promise(() => {}); // keep alive
     }
 
@@ -368,7 +368,7 @@ async function main() {
             await manageAccounts(accountManager, config);
             break;
         case 'web':
-            await import('./web/server.ts');
+            await import('./web/server.js');
             await new Promise(() => {}); // keep alive
             break;
         case 'purge':
@@ -1013,10 +1013,10 @@ async function startMonitor(accountManager, config) {
     console.log(colorize('╚════════════════════════════════════════╝', 'cyan'));
     console.log();
 
-    const { DownloadManager } = await import('./core/downloader.ts');
-    const { RealtimeMonitor } = await import('./core/monitor.ts');
-    const { RateLimiter } = await import('./core/security.ts');
-    const { AutoForwarder } = await import('./core/forwarder.ts');
+    const { DownloadManager } = await import('./core/downloader.js');
+    const { RealtimeMonitor } = await import('./core/monitor.js');
+    const { RateLimiter } = await import('./core/security.js');
+    const { AutoForwarder } = await import('./core/forwarder.js');
 
     // Migrate old folder names
     await migrateFolders(config.download?.path);
@@ -1176,10 +1176,10 @@ async function startHistory(accountManager, config, connManager) {
     client.setLogLevel('none');
 
     // Import dynamically
-    const { DownloadManager } = await import('./core/downloader.ts');
-    const { HistoryDownloader } = await import('./core/history.ts');
-    const { RateLimiter } = await import('./core/security.ts');
-    const { AutoForwarder } = await import('./core/forwarder.ts');
+    const { DownloadManager } = await import('./core/downloader.js');
+    const { HistoryDownloader } = await import('./core/history.js');
+    const { RateLimiter } = await import('./core/security.js');
+    const { AutoForwarder } = await import('./core/forwarder.js');
 
     // Migrate old folder names (space → underscore) before downloading
     await migrateFolders(config.download?.path);

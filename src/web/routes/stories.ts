@@ -63,8 +63,8 @@ export function createStoriesRouter({ getAccountManager, runtime, loadConfig }) 
             const wanted = new Set(storyIds.map(Number));
             const matched = stories.filter(s => wanted.has(Number(s.id)));
 
-            const { DownloadManager } = await import('../../core/downloader.ts');
-            const { RateLimiter } = await import('../../core/security.ts');
+            const { DownloadManager } = await import('../../core/downloader.js');
+            const { RateLimiter } = await import('../../core/security.js');
             const config = loadConfig();
             const standalone = !runtime._downloader;
             const downloader = runtime._downloader || new DownloadManager(client, config, new RateLimiter(config.rateLimits));

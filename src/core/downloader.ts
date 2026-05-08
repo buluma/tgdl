@@ -128,6 +128,28 @@ const DEFAULT_IDLE_SLEEP_MS = 200;
 const DEFAULT_SPILLOVER_THRESHOLD = 2000;
 
 export class DownloadManager extends EventEmitter {
+    client: TelegramClient;
+    config: any;
+    rateLimiter: any;
+    _high: any[];
+    queue: any[];
+    active: Map<string, any>;
+    _activeFilePaths: Set<string>;
+    concurrency: number;
+    running: boolean;
+    workers: any[];
+    workerCount: number;
+    LOG_DIR: string;
+    _scalerInterval: any;
+    _consecutiveSuccess: number;
+    _paused: Set<string>;
+    _globalPaused: boolean;
+    _jobs: Map<string, any>;
+    _cancelling: boolean;
+    _diskUsageCache: { size: number };
+    _saveTimeout: any;
+    BACKLOG_PATH: string;
+
     constructor(client: TelegramClient, config: any, rateLimiter: any) {
         super();
         this.client = client;

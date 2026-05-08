@@ -438,13 +438,13 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
             // Pull every embedding (cache-friendly via vector-store.topK
             // re-using the same listing) so we can grab the source row's
             // vector without a new SELECT path.
-            const { listAllImageEmbeddings } = await import('../../core/db.ts');
+            const { listAllImageEmbeddings } = await import('../../core/db.js');
             const rows = listAllImageEmbeddings({ fileTypes: cfg.fileTypes });
             const src = rows.find((r) => r.download_id === downloadId);
             if (!src || !src.embedding) {
                 return res.status(404).json({ error: 'no embedding for that download' });
             }
-            const { blobToVector, topK } = await import('../../core/ai/vector-store.ts');
+            const { blobToVector, topK } = await import('../../core/ai/vector-store.js');
             const vec = blobToVector(src.embedding);
             if (!vec) return res.status(500).json({ error: 'embedding decode failed' });
             // Run topK; remove the source row itself from the result list.

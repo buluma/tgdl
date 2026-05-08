@@ -127,7 +127,7 @@ async function _configureEnv(env, cacheDirAbs) {
         // exist yet.
         if (!token) {
             try {
-                const { loadConfig } = await import('../../config/manager.ts');
+                const { loadConfig } = await import('../../config/manager.js');
                 const cfg = loadConfig();
                 const cfgToken = cfg?.advanced?.ai?.hfToken;
                 if (typeof cfgToken === 'string' && cfgToken.trim()) {

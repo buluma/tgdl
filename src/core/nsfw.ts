@@ -170,7 +170,7 @@ async function _loadClassifier(cfg, onProgress, onLog) {
                 || null;
             if (!token) {
                 try {
-                    const { loadConfig } = await import('../config/manager.ts');
+                    const { loadConfig } = await import('../config/manager.js');
                     const live = loadConfig();
                     const cfgToken = live?.advanced?.ai?.hfToken;
                     if (typeof cfgToken === 'string' && cfgToken.trim()) {
@@ -481,7 +481,7 @@ async function _drainBg() {
     if (_bgRunning) return;
     _bgRunning = true;
     try {
-        const { loadConfig } = await import('../config/manager.ts');
+        const { loadConfig } = await import('../config/manager.js');
         // Re-resolve config every drain — picks up live changes without
         // a server restart, same pattern as the WASM classifier itself.
         let cfg;

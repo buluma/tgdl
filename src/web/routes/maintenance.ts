@@ -786,7 +786,7 @@ export function createMaintenanceRouter({
     router.get('/api/maintenance/thumbs/hwaccel-probe', async (req, res) => {
         try {
             const { spawn } = await import('child_process');
-            const thumbs = await import('../../core/thumbs.ts');
+            const thumbs = await import('../../core/thumbs.js');
             const bin = thumbs.resolveFfmpegBin?.() || 'ffmpeg';
             const out = await new Promise((resolve, reject) => {
                 const p = spawn(bin, ['-hide_banner', '-hwaccels'], { windowsHide: true });
@@ -860,7 +860,7 @@ export function createMaintenanceRouter({
         log({ source: 'faststart', level: 'info', msg: 'faststart sweep starting' });
         (async () => {
             try {
-                const { optimizeAll } = await import('../../core/faststart.ts');
+                const { optimizeAll } = await import('../../core/faststart.js');
                 const r = await optimizeAll({
                     onProgress: (p) => {
                         Object.assign(_faststartState, p, { running: true });
@@ -896,7 +896,7 @@ export function createMaintenanceRouter({
 
     router.get('/api/maintenance/faststart/stats', async (req, res) => {
         try {
-            const { getStats } = await import('../../core/faststart.ts');
+            const { getStats } = await import('../../core/faststart.js');
             const r = await getStats();
             res.json({ success: true, ffmpegAvailable: hasFfmpeg(), ...r });
         } catch (e) {

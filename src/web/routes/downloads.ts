@@ -353,7 +353,7 @@ export function createDownloadsRouter({
             if (idList.length === 0) return res.status(400).json({ error: 'ids required' });
 
             const { ZipStream, ZIP_MAX_BYTES, ZIP_MAX_ENTRIES, safeArchiveName }
-                = await import('../../core/zip-stream.ts');
+                = await import('../../core/zip-stream.js');
 
             if (idList.length > ZIP_MAX_ENTRIES) {
                 return res.status(413).json({ error: `Too many files in one ZIP (cap ${ZIP_MAX_ENTRIES}). Split into smaller batches.` });

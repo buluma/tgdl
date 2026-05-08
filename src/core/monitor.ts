@@ -22,6 +22,26 @@ import fsSync from 'fs';
 import path from 'path';
 
 export class RealtimeMonitor extends EventEmitter {
+    client: any;
+    downloader: any;
+    config: any;
+    configPath: string | null;
+    accountManager: any;
+    running: boolean;
+    handler: any;
+    handlerClients: any[];
+    stats: { messages: number; media: number; downloaded: number; skipped: number; urls: number };
+    spamGuard: any;
+    linkedChatMap: Map<string, any>;
+    contentHashes: Set<string>;
+    userRateLimits: Map<string, any>;
+    groupClientCache: Map<string, any>;
+    lastIds: Map<string, number>;
+    urlBuffer: any[];
+    urlFlushInterval: any;
+    pollTimeout: any;
+    deleteHandler: any;
+
     constructor(client, downloader, config, configPath = null, accountManager = null) {
         super();
         this.client = client;
@@ -31,7 +51,7 @@ export class RealtimeMonitor extends EventEmitter {
         this.accountManager = accountManager;
         this.running = false;
         this.handler = null;
-        this.handlerClients = [];  // Track all clients with registered handlers
+        this.handlerClients = [];
         this.stats = {
             messages: 0,
             media: 0,
@@ -39,8 +59,8 @@ export class RealtimeMonitor extends EventEmitter {
             skipped: 0,
             urls: 0
         };
-        this.spamGuard = new SpamGuard(); // Active Defense System
-        this.linkedChatMap = new Map(); // normalized linkedChatId -> { group, rawId }
+        this.spamGuard = new SpamGuard();
+        this.linkedChatMap = new Map();
 
         // Config file watcher for live sync with Web UI
         if (configPath && fsSync.existsSync(configPath)) {
@@ -160,7 +180,7 @@ export class RealtimeMonitor extends EventEmitter {
         this.linkedChatMap = new Map();    // normalizedLinkedChatId -> { group, rawId }
 
         // Migrate old unsanitized folder names (space → underscore)
-        const { migrateFolders } = await import('./downloader.ts');
+        const { migrateFolders } = await import('./downloader.js');
         await migrateFolders(this.config.download?.path);
         
         // Start URL Batch Writer
@@ -250,7 +270,7 @@ export class RealtimeMonitor extends EventEmitter {
             const enabled = histCfg.autoCatchUp !== false;          // default ON
             const threshold = Math.max(1, Number(histCfg.autoCatchUpThreshold) || 5);
             if (enabled) {
-                const { getMessageIdRange } = await import('./db.ts');
+                const { getMessageIdRange } = await import('./db.js');
                 for (const group of enabledGroups) {
                     if (!group.enabled) continue;
                     const top = _topPerGroup.get(String(group.id));
@@ -844,6 +864,9 @@ export class RealtimeMonitor extends EventEmitter {
  * Active Spam Defense System
  */
 class SpamGuard {
+    userRateLimits: Map<string, { count: number; reset: number }>;
+    contentHashes: Map<string, any>;
+
     constructor() {
         this.userRateLimits = new Map(); 
         this.contentHashes = new Map();  

@@ -965,7 +965,7 @@ function _rewriteHtmlSrc(html) {
 }
 
 function _rewriteJsImports(js) {
-    // Match: `from './X.ts'`, `import './X.ts'`, `import('./X.js')`.
+    // Match: `from './X.ts'`, `import './X.js'`, `import('./X.js')`.
     // Skip any specifier that already carries a query string.
     return js.replace(
         /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])(\.{1,2}\/[^'"?]+\.js)\2/g,
@@ -1260,8 +1260,8 @@ app.post('/api/download/url', async (req, res) => {
         const am = await getAccountManager();
         if (am.count === 0) return res.status(409).json({ error: 'No Telegram accounts loaded' });
 
-        const { DownloadManager } = await import('../core/downloader.ts');
-        const { RateLimiter } = await import('../core/security.ts');
+        const { DownloadManager } = await import('../core/downloader.js');
+        const { RateLimiter } = await import('../core/security.js');
 
         const config = loadConfig();
         const standalone = !runtime._downloader;

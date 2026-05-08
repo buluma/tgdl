@@ -66,5 +66,5 @@ brain/
 .agent/
 .claude/
 SKILL.md
-*config.json
+config.json
 /.gemini-tasks

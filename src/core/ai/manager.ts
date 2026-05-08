@@ -407,7 +407,7 @@ async function _drainBg() {
     if (_bgRunning) return;
     _bgRunning = true;
     try {
-        const { loadConfig } = await import('../../config/manager.ts');
+        const { loadConfig } = await import('../../config/manager.js');
         let cfg;
         try {
             const live = loadConfig();
