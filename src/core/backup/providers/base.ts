@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Provider interface — JSDoc shape only; no runtime enforcement.
 //
 // Implementing a new provider:

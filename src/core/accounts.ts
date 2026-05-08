@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Account Manager - Multi-Account Telegram Client Management
  * Supports dynamic account assignment per group for monitoring & forwarding

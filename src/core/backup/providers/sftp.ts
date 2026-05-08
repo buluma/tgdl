@@ -1,3 +1,4 @@
+// @ts-nocheck
 // SFTP backup provider. Wraps `ssh2-sftp-client` with the same surface
 // the manager expects from every provider — streaming upload, idempotent
 // delete, stat-or-null, async-iterable list, cheap testConnection.

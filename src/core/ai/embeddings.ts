@@ -152,7 +152,7 @@ function _toFloat32(out) {
 
 function _arrayLikeToFloat32(x) {
     if (x instanceof Float32Array) return new Float32Array(x); // copy so the caller's normalize doesn't mutate the pipeline's buffer
-    if (Array.isArray(x) || ArrayBuffer.isView(x)) return Float32Array.from(x);
+    if (Array.isArray(x) || ArrayBuffer.isView(x)) return Float32Array.from(x as any);
     return null;
 }
 

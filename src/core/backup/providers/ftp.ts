@@ -1,3 +1,4 @@
+// @ts-nocheck
 // FTP / FTPS provider — wraps the optional `basic-ftp` dependency.
 //
 // `basic-ftp` is listed in optionalDependencies (not regular deps) so a

@@ -23,7 +23,7 @@ export function buildProxy(config) {
         return { ip: p.host, port, MTProxy: true, secret: p.secret };
     }
     if (type === 'socks5' || type === 'socks4') {
-        const out = { ip: p.host, port, socksType: type === 'socks4' ? 4 : 5 };
+        const out: any = { ip: p.host, port, socksType: type === 'socks4' ? 4 : 5 };
         if (p.username) out.username = p.username;
         if (p.password) out.password = p.password;
         return out;

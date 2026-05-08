@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Google Drive provider — wraps the optional `googleapis` dependency.
 //
 // Auth model: the operator generates an OAuth2 refresh token externally

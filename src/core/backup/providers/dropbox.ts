@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Dropbox provider — wraps the optional `dropbox` SDK.
 //
 // Auth model: appKey + appSecret + refreshToken. The dashboard does

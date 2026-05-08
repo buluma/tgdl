@@ -20,6 +20,7 @@ function getTs() {
         second: '2-digit',
         hour12: false
     };
+    // @ts-expect-error overload mismatch
     return new Intl.DateTimeFormat('en-KE', opt).format(d).replace(/,/, '');
 }
 

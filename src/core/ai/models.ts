@@ -159,7 +159,7 @@ async function _configureEnv(env, cacheDirAbs) {
  * @param {(entry:object) => void} [opts.onLog]   Structured log sink.
  * @returns {Promise<Function>}              The pipeline handle.
  */
-export async function getPipeline({ kind, modelId, cacheDir, onProgress, onLog }: { kind?: any; modelId?: any; cacheDir?: string; onProgress?: any; onLog?: any } = {}) {
+export async function getPipeline({ kind, modelId, cacheDir, onProgress, onLog }: any = {}) {
     if (!kind) throw new Error('getPipeline: kind is required');
     if (!modelId) throw new Error('getPipeline: modelId is required');
     const _log = (level, msg) => {

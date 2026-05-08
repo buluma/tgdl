@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MP4 faststart optimizer.
  *

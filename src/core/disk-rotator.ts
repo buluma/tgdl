@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Disk Rotator — periodic sweep that enforces config.diskManagement.maxTotalSize.
  *

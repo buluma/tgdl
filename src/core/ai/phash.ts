@@ -120,8 +120,9 @@ export async function computePhash(absPath) {
  * inputs (the DB layer round-trips through BigInt; in-memory cache may keep
  * Numbers). Always returns an integer in [0, 64].
  */
-export function hammingDistance(a, b) {
-    let bigA, bigB;
+export function hammingDistance(a: any, b: any) {
+    let bigA: bigint;
+    let bigB: bigint;
     try { bigA = typeof a === 'bigint' ? a : BigInt(a); } catch { return 64; }
     try { bigB = typeof b === 'bigint' ? b : BigInt(b); } catch { return 64; }
     let xor = bigA ^ bigB;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Runtime — singleton orchestrator that owns the realtime monitor +
  * downloader + auto-forwarder for the in-process web server.

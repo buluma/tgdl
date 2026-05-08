@@ -31,6 +31,7 @@ interface Config {
     retentionHours: number;
     sweepIntervalMin: number;
   };
+  advanced?: any;
   // Add more as needed
 }
 

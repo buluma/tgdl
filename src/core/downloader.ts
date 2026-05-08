@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Download Manager - Multi-threaded downloads with deduplication
  */

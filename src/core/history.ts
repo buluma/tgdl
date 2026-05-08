@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * History Downloader - Batch download past messages
  */

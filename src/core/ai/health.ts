@@ -245,12 +245,12 @@ export async function summary({ getDb, cacheDir }: { getDb?: any; cacheDir?: str
         checkSqliteVec(getDb),
         checkModelsDir(cacheDir),
     ]);
-    const checks = [sharp, transformers, sqliteVec, modelsDir];
-    const required = checks.filter((c) => !c.optional);
-    const ok = required.every((c) => c.ok);
+    const checks: any[] = [sharp, transformers, sqliteVec, modelsDir];
+    const required = checks.filter((c: any) => !c.optional);
+    const ok = required.every((c: any) => c.ok);
     const recommendations = checks
-        .filter((c) => !c.ok && c.recommendation)
-        .map((c) => ({ name: c.name, text: c.recommendation }));
+        .filter((c: any) => !c.ok && c.recommendation)
+        .map((c: any) => ({ name: c.name, text: c.recommendation }));
     return {
         ok,
         checks,

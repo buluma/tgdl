@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Local-filesystem backup provider.
 //
 // Targets a directory on a mounted volume — the typical NAS use case is

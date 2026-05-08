@@ -13,6 +13,7 @@ import { sanitizeName } from './downloader.js';
 const ts = () => {
     const d = new Date();
     const opt = { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    // @ts-expect-error Node v25 type mismatch with Intl.DateTimeFormat
     return new Intl.DateTimeFormat('en-KE', opt).format(d).replace(/,/, '');
 };
 import { markRescued } from './db.js';
@@ -37,7 +38,7 @@ export class RealtimeMonitor extends EventEmitter {
     userRateLimits: Map<string, any>;
     groupClientCache: Map<string, any>;
     lastIds: Map<string, number>;
-    urlBuffer: any[];
+    urlBuffer: Map<string, any[]>;
     urlFlushInterval: any;
     pollTimeout: any;
     deleteHandler: any;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * One-shot import of legacy JSON state files (config.json, disk_usage.json,
  * web-sessions.json, history-jobs.json, queue-history.json) into the

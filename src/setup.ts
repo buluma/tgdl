@@ -31,7 +31,7 @@ async function setup() {
     if (fs.existsSync(CONFIG_FILE)) {
         console.log('\x1b[33m%s\x1b[0m', '⚠️  Existing config found.');
         const ans = await question('   Overwrite? (y/N): ');
-        if (ans.toLowerCase() !== 'y') {
+        if (String(ans).toLowerCase() !== 'y') {
             console.log('Skipping setup.');
             process.exit(0);
         }

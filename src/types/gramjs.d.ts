@@ -18,6 +18,9 @@ declare module 'telegram' {
     getMe(): Promise<any>;
     setLogLevel(level: string): void;
     invoke(info: any): Promise<any>;
+    checkAuthorization(): Promise<boolean>;
+    session: any;
+    baseLogger: any;
   }
 
   export class Api {
@@ -37,6 +40,12 @@ declare module 'telegram' {
     static InputPeerUser: any;
     static stories: any;
     static channels: any;
+    static InputMessagesFilterVoice: any;
+    static InputMessagesFilterVideo: any;
+    static InputMessagesFilterUrl: any;
+    static InputMessagesFilterPhotos: any;
+    static InputMessagesFilterGif: any;
+    static InputMessagesFilterDocument: any;
   }
 }
 

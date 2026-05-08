@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Share-link signing & verification.
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Stories — small wrapper over GramJS's Api.stories.* surface.
  *

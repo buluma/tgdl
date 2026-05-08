@@ -61,14 +61,14 @@ function parseTgScheme(url) {
     if (action === 'resolve') {
         if (!params.domain) throw new UrlParseError('tg://resolve missing domain');
         if (!params.post) throw new UrlParseError('tg://resolve missing post');
-        const out = { chatRef: `@${params.domain}`, messageId: parseInt(params.post, 10) };
+        const out: any = { chatRef: `@${params.domain}`, messageId: parseInt(params.post, 10) };
         if (params.thread) out.topicId = parseInt(params.thread, 10);
         return out;
     }
     if (action === 'privatepost') {
         if (!params.channel) throw new UrlParseError('tg://privatepost missing channel');
         if (!params.post) throw new UrlParseError('tg://privatepost missing post');
-        const out = { chatRef: toChannelId(params.channel), messageId: parseInt(params.post, 10) };
+        const out: any = { chatRef: toChannelId(params.channel), messageId: parseInt(params.post, 10) };
         if (params.thread) out.topicId = parseInt(params.thread, 10);
         return out;
     }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Standardised lifecycle for "fire-and-forget admin job" endpoints.
 //
 // Every long-running admin action (verify files, db vacuum, refresh

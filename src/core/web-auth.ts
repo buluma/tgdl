@@ -118,7 +118,7 @@ export function isGuestEnabled(webConfig) {
 
 // ---- session token store --------------------------------------------------
 
-let sessions = null; // { [token]: { createdAt, expiresAt } }
+let sessions: Record<string, any> | null = null;
 
 function ensureLoaded() {
     if (sessions !== null) return;
@@ -130,7 +130,7 @@ function ensureLoaded() {
             const parsed = JSON.parse(raw);
             const now = Date.now();
             for (const [tok, meta] of Object.entries(parsed || {})) {
-                if (meta && meta.expiresAt > now) sessions[tok] = meta;
+                if (meta && (meta as any).expiresAt > now) sessions[tok] = meta;
             }
         }
     } catch {

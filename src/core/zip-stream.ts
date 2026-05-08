@@ -85,8 +85,8 @@ export class ZipStream {
     _write(buf) {
         if (!this._sink) throw new Error('ZipStream: pipe(target) before adding entries');
         this._offset += buf.length;
-        return new Promise((resolve, reject) => {
-            const ok = this._sink.write(buf, (err) => {
+        return new Promise<void>((resolve, reject) => {
+            const ok = this._sink.write(buf, (err: any) => {
                 if (err) reject(err);
                 else if (ok) resolve();
             });
