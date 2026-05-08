@@ -7,7 +7,7 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Api } from 'telegram';
+import { Api, TelegramClient } from 'telegram';
 import { DebugLogger } from './logger.js';
 import { getDb, insertDownload, isDownloaded as dbIsDownloaded } from './db.js';
 import { sha256OfFile, sha256OfFileViaPool } from './checksum.js';
@@ -37,7 +37,7 @@ const _WIN_RESERVED = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)/i;
  *   boundary; we cut at a byte cap and back off to the last full
  *   codepoint).
  */
-export function sanitizeName(name) {
+export function sanitizeName(name: string): string {
     let s = String(name || '')
         .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
         .replace(/\s+/g, '_')
@@ -61,7 +61,7 @@ function _truncUtf8(s, maxBytes) {
 /**
  * Migrate old unsanitized folder names into sanitized ones (one-time startup)
  */
-export async function migrateFolders(downloadPath) {
+export async function migrateFolders(downloadPath: string): Promise<void> {
     const basePath = downloadPath || DOWNLOADS_DIR;
     try {
         if (!existsSync(basePath)) return;
@@ -128,7 +128,7 @@ const DEFAULT_IDLE_SLEEP_MS = 200;
 const DEFAULT_SPILLOVER_THRESHOLD = 2000;
 
 export class DownloadManager extends EventEmitter {
-    constructor(client, config, rateLimiter) {
+    constructor(client: TelegramClient, config: any, rateLimiter: any) {
         super();
         this.client = client;
         this.config = config;
@@ -170,7 +170,7 @@ export class DownloadManager extends EventEmitter {
     }
 
     // Helper to constructing the exact InputLocation required by GramJS
-    getInputLocation(message) {
+    getInputLocation(message: any): any {
         // 1. Check for Document
         let doc = message.document;
         if (!doc && message.media) {

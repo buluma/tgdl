@@ -1,13 +1,22 @@
 # syntax=docker/dockerfile:1.7
 #
 # Multi-stage build:
-#   - "deps" installs prod dependencies only (npm ci --omit=dev) so the runtime
-#     image stays small.
-#   - "runtime" copies node_modules from "deps" + the source, runs as the
+#   - "builder" installs all dependencies, copies source, and compiles TypeScript
+#   - "deps" installs prod dependencies only for smaller runtime image
+#   - "runtime" copies node_modules from "deps" + the built dist, runs as the
 #     non-root `node` user, exposes 3000, and ships a healthcheck that hits
 #     the dashboard's /api/auth_check endpoint.
 #
 # Pin a specific patch version. Floating tags drift; this image is reproducible.
+
+FROM node:24.15.0-bookworm-slim AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY tsconfig.json ./
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+RUN npm run build
 
 FROM node:24.15.0-bookworm-slim AS deps
 WORKDIR /app
@@ -56,8 +65,8 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY src ./src
-COPY scripts ./scripts
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/scripts ./scripts
 COPY runner.js config.example.json package.json LICENSE README.md SECURITY.md ./
 
 # Persistent state (sessions, config, downloads) — mount this as a volume.
@@ -78,4 +87,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node scripts/healthcheck.js || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/app/scripts/docker-entrypoint.sh"]
-CMD ["node", "src/web/server.js"]
+CMD ["node", "dist/index.js"]
