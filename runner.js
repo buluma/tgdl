@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOG_FILE = path.join(__dirname, 'data/logs/protection_log.txt');
-const APP_SCRIPT = path.join(__dirname, 'src/index.js');
+const APP_SCRIPT = path.join(__dirname, 'dist/index.js');
 const LOCALSTORAGE_FILE = path.join(__dirname, 'data/localstorage.json');
 // Subcommand to run under the watchdog. Default is empty = dashboard/web mode
 // (`node src/index.js`), which is what `npm run prod` promises in README.

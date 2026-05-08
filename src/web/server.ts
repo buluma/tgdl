@@ -328,7 +328,7 @@ try {
 // are migrated to addEventListener.
 app.use(helmet({
     contentSecurityPolicy: {
-        useDefaults: true,
+        useDefaults: false,
         directives: {
             'default-src': ["'self'"],
             'script-src': [
@@ -336,11 +336,6 @@ app.use(helmet({
                 'https://cdn.tailwindcss.com',
                 'https://cdn.jsdelivr.net',
             ],
-            // The SPA uses inline onclick / oninput handlers in index.html
-            // (toggle UI, range-slider value updaters, modal close-buttons).
-            // Helmet's defaults set script-src-attr to 'none' which would
-            // block them; allow inline here until the markup is migrated to
-            // addEventListener.
             'script-src-attr': ["'unsafe-inline'"],
             'style-src': [
                 "'self'", "'unsafe-inline'",
@@ -351,9 +346,12 @@ app.use(helmet({
             'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net'],
             'img-src': ["'self'", 'data:', 'blob:'],
             'media-src': ["'self'", 'blob:'],
-            'connect-src': ["'self'", 'ws:', 'wss:'],
+            'connect-src': ["'self'", 'ws:', 'wss:', 'http://localhost:*', 'http://127.0.0.1:*'],
             'object-src': ["'none'"],
             'frame-ancestors': ["'self'"],
+            'base-uri': ["'self'"],
+            'form-action': ["'self'"],
+            'upgrade-insecure-requests': [],
         },
     },
     crossOriginEmbedderPolicy: false,
