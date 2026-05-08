@@ -7,8 +7,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import { Api } from 'telegram';
-import { getMessageIdRange } from './db.ts';
-import { BACKPRESSURE_CAP_DEFAULT, BACKPRESSURE_MAX_WAIT_MS_DEFAULT } from './constants.ts';
+import { getMessageIdRange } from './db.js';
+import { BACKPRESSURE_CAP_DEFAULT, BACKPRESSURE_MAX_WAIT_MS_DEFAULT } from './constants.js';
 
 export class HistoryDownloader extends EventEmitter {
     constructor(client, downloader, config, accountManager = null) {

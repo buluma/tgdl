@@ -26,8 +26,8 @@
 import fs from 'fs';
 import path from 'path';
 import { Transform } from 'stream';
-import { BackupProvider, optionalDepError } from './base.ts';
-import { encryptStream } from '../encryption.ts';
+import { BackupProvider, optionalDepError } from './base.js';
+import { encryptStream } from '../encryption.js';
 
 const APP_PROPERTY_KEY = 'tgdl-backup';
 const APP_PROPERTY_VALUE = '1';

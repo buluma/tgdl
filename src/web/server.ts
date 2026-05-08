@@ -19,47 +19,47 @@ import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions/index.js';
 import crypto from 'crypto';
 
-import { getOrGenerateSecret } from '../core/secret.ts';
+import { getOrGenerateSecret } from '../core/secret.js';
 import { getDb, getStats as getDbStats, backfillGroupNames,
     getShareLinkForServe, bumpShareLinkAccess,
-    } from '../core/db.ts';
-import * as ai from '../core/ai/index.ts';
-import { SecureSession } from '../core/security.ts';
-import { AccountManager } from '../core/accounts.ts';
-import { loadConfig } from '../config/manager.ts';
-import { runtime } from '../core/runtime.ts';
-import { getDiskRotator } from '../core/disk-rotator.ts';
-import * as integrity from '../core/integrity.ts';
+    } from '../core/db.js';
+import * as ai from '../core/ai/index.js';
+import { SecureSession } from '../core/security.js';
+import { AccountManager } from '../core/accounts.js';
+import { loadConfig } from '../config/manager.js';
+import { runtime } from '../core/runtime.js';
+import { getDiskRotator } from '../core/disk-rotator.js';
+import * as integrity from '../core/integrity.js';
 import { ensureShareSecret, verifyShareToken, buildShareUrlPath,
-    clampTtlSeconds, applyShareLimits } from '../core/share.ts';
-import { preloadClassifier as nsfwPreloadClassifier, NSFW_DEFAULTS } from '../core/nsfw.ts';
+    clampTtlSeconds, applyShareLimits } from '../core/share.js';
+import { preloadClassifier as nsfwPreloadClassifier, NSFW_DEFAULTS } from '../core/nsfw.js';
 // runAutoUpdate, autoUpdateStatus — now used in routes/version.js
-import { getRescueSweeper } from '../core/rescue.ts';
-import * as backup from '../core/backup/index.ts';
-import { parseTelegramUrl, parseUrlList, UrlParseError } from '../core/url-resolver.ts';
-import { metrics } from '../core/metrics.ts';
+import { getRescueSweeper } from '../core/rescue.js';
+import * as backup from '../core/backup/index.js';
+import { parseTelegramUrl, parseUrlList, UrlParseError } from '../core/url-resolver.js';
+import { metrics } from '../core/metrics.js';
 import {
     hashPassword, verifyPassword, loginVerify, isAuthConfigured, isGuestEnabled,
     issueSession, validateSession, revokeSession,
     revokeAllSessions, revokeAllGuestSessions, startSessionGc,
-} from '../core/web-auth.ts';
-import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from '../core/logger.ts';
-import { BACKFILL_MAX_LIMIT } from '../core/constants.ts';
-import { createJobTracker } from '../core/job-tracker.ts';
-import { createShareRouter } from './routes/share.ts';
-import { createVersionRouter, _readCurrentVersion } from './routes/version.ts';
-import { createAuthRouter } from './routes/auth.ts';
-import { createAccountsRouter } from './routes/accounts.ts';
-import { createMonitorRouter } from './routes/monitor.ts';
-import { createHistoryRouter, createSpawnBackfill, isBackfillActive } from './routes/history.ts';
-import { createStoriesRouter } from './routes/stories.ts';
-import { createQueueRouter } from './routes/queue.ts';
-import { createBackupRouter } from './routes/backup.ts';
-import { createAiRouter } from './routes/ai.ts';
-import { createMaintenanceRouter } from './routes/maintenance.ts';
-import { createDownloadsRouter } from './routes/downloads.ts';
-import { createGroupsRouter, bestGroupName } from './routes/groups.ts';
-import { createConfigRouter } from './routes/config.ts';
+} from '../core/web-auth.js';
+import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from '../core/logger.js';
+import { BACKFILL_MAX_LIMIT } from '../core/constants.js';
+import { createJobTracker } from '../core/job-tracker.js';
+import { createShareRouter } from './routes/share.js';
+import { createVersionRouter, _readCurrentVersion } from './routes/version.js';
+import { createAuthRouter } from './routes/auth.js';
+import { createAccountsRouter } from './routes/accounts.js';
+import { createMonitorRouter } from './routes/monitor.js';
+import { createHistoryRouter, createSpawnBackfill, isBackfillActive } from './routes/history.js';
+import { createStoriesRouter } from './routes/stories.js';
+import { createQueueRouter } from './routes/queue.js';
+import { createBackupRouter } from './routes/backup.js';
+import { createAiRouter } from './routes/ai.js';
+import { createMaintenanceRouter } from './routes/maintenance.js';
+import { createDownloadsRouter } from './routes/downloads.js';
+import { createGroupsRouter, bestGroupName } from './routes/groups.js';
+import { createConfigRouter } from './routes/config.js';
 
 // Demote gramJS reconnect chatter from stderr/stdout to data/logs/network.log.
 // gramJS opens a fresh DC connection per file download (different DCs host
@@ -965,7 +965,7 @@ function _rewriteHtmlSrc(html) {
 }
 
 function _rewriteJsImports(js) {
-    // Match: `from './X.ts'`, `import './X.ts'`, `import('./X.ts')`.
+    // Match: `from './X.ts'`, `import './X.ts'`, `import('./X.js')`.
     // Skip any specifier that already carries a query string.
     return js.replace(
         /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])(\.{1,2}\/[^'"?]+\.js)\2/g,

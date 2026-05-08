@@ -23,9 +23,9 @@
 
 import { existsSync } from 'fs';
 import sharp from 'sharp';
-import { getPipeline, AI_MODEL_DEFAULTS } from './models.ts';
-import { embedImage } from './embeddings.ts';
-import { l2Normalize, cosine, vectorToBlob } from './vector-store.ts';
+import { getPipeline, AI_MODEL_DEFAULTS } from './models.js';
+import { embedImage } from './embeddings.js';
+import { l2Normalize, cosine, vectorToBlob } from './vector-store.js';
 
 let _detectorPromise = null;
 

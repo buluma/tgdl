@@ -15,7 +15,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { suggestPublicReplacement, AI_MODEL_DEFAULTS } from './ai/models.ts';
+import { suggestPublicReplacement, AI_MODEL_DEFAULTS } from './ai/models.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.TGDL_DATA_DIR

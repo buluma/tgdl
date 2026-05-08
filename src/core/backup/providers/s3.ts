@@ -24,8 +24,8 @@ import {
     ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import { BackupProvider } from './base.ts';
-import { encryptStream } from '../encryption.ts';
+import { BackupProvider } from './base.js';
+import { encryptStream } from '../encryption.js';
 
 export class S3Provider extends BackupProvider {
     static get name() { return 's3'; }

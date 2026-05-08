@@ -34,12 +34,12 @@ import {
     clearAllPeople,
     insertPerson,
     setFacePerson,
-} from '../db.ts';
-import { vectorToBlob, blobToVector, l2Normalize, topK as vectorTopK, clearCache as clearVectorCache } from './vector-store.ts';
-import { embedImage, embedText } from './embeddings.ts';
-import { detectFaces, embedFace, dbscan, centroidToBlob } from './faces.ts';
-import { classifyImage } from './tags.ts';
-import { computePhash, groupNearDuplicates } from './phash.ts';
+} from '../db.js';
+import { vectorToBlob, blobToVector, l2Normalize, topK as vectorTopK, clearCache as clearVectorCache } from './vector-store.js';
+import { embedImage, embedText } from './embeddings.js';
+import { detectFaces, embedFace, dbscan, centroidToBlob } from './faces.js';
+import { classifyImage } from './tags.js';
+import { computePhash, groupNearDuplicates } from './phash.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');

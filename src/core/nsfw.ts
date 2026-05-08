@@ -22,7 +22,7 @@
 import path from 'path';
 import { existsSync, promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
-import { getDb, getUnscannedNsfwBatch, setNsfwResult, getNsfwStats } from './db.ts';
+import { getDb, getUnscannedNsfwBatch, setNsfwResult, getNsfwStats } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
@@ -670,4 +670,4 @@ export { getNsfwStats };
 
 // Expose the underlying DB module via re-export so server.js doesn't
 // have to import from db.js separately just to wire NSFW endpoints.
-export { whitelistNsfw, getNsfwDeleteCandidates } from './db.ts';
+export { whitelistNsfw, getNsfwDeleteCandidates } from './db.js';

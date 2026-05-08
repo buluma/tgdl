@@ -3,7 +3,7 @@
  * Keeps the connection alive and reconnects if dropped
  */
 
-import { colorize } from '../cli/colors.ts';
+import { colorize } from '../cli/colors.js';
 
 export class ConnectionManager {
     constructor(client, options = {}) {

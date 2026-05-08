@@ -13,7 +13,7 @@
  */
 
 import { existsSync } from 'fs';
-import { getPipeline, AI_MODEL_DEFAULTS } from './models.ts';
+import { getPipeline, AI_MODEL_DEFAULTS } from './models.js';
 
 let _classifierPromise = null;
 

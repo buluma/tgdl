@@ -3,7 +3,7 @@
  * Proactively traps errors, decides on recovery, and keeps the process alive.
  */
 
-import { colorize } from '../cli/colors.ts';
+import { colorize } from '../cli/colors.js';
 
 export class Resilience {
     constructor() {

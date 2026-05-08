@@ -39,8 +39,8 @@ import path from 'path';
 import { existsSync, promises as fs } from 'fs';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
-import { getDb } from './db.ts';
-import { resolveFfmpegBin, hasFfmpeg, purgeThumbsForDownload } from './thumbs.ts';
+import { getDb } from './db.js';
+import { resolveFfmpegBin, hasFfmpeg, purgeThumbsForDownload } from './thumbs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');

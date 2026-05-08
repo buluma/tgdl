@@ -19,8 +19,8 @@
 import { promises as fs, existsSync } from 'fs';
 import os from 'os';
 import path from 'path';
-import { tryImport } from './safe-load.ts';
-import { resolveCacheDir } from './models.ts';
+import { tryImport } from './safe-load.js';
+import { resolveCacheDir } from './models.js';
 
 const PLATFORM = process.platform; // 'win32' | 'linux' | 'darwin'
 const NODE_VERSION = process.version;

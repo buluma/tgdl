@@ -1,11 +1,11 @@
 import express from 'express';
-import * as ai from '../../core/ai/index.ts';
+import * as ai from '../../core/ai/index.js';
 import {
     getDb,
     getAiCounts, listPeople, listPhotosForPerson,
     renamePerson, deletePerson,
     listAllTags, listPhotosForTag,
-} from '../../core/db.ts';
+} from '../../core/db.js';
 
 // Per-capability descriptors used by the model-status endpoint. Mirrors
 // the names the dashboard already uses. The kind is the Transformers.js

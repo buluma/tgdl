@@ -13,17 +13,17 @@ import os from 'os';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
-import { loadConfig, saveConfig, addGroup } from './config/manager.ts';
-import { hashPassword } from './core/web-auth.ts';
-import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from './core/logger.ts';
-import { RateLimiter, SecureSession } from './core/security.ts';
-import { ConnectionManager } from './core/connection.ts';
-import { AccountManager } from './core/accounts.ts';
-import { colorize, clearScreen, formatBytes } from './cli/colors.ts';
-import { resilience } from './core/resilience.ts';
-import { getOrGenerateSecret } from './core/secret.ts';
-import { getDb, getStats as getDbStats, deleteGroupDownloads, deleteAllDownloads, backfillGroupNames } from './core/db.ts';
-import { sanitizeName, migrateFolders } from './core/downloader.ts';
+import { loadConfig, saveConfig, addGroup } from './config/manager.js';
+import { hashPassword } from './core/web-auth.js';
+import { suppressNoise, wrapConsoleMethod, NATIVE_LOAD_FAIL } from './core/logger.js';
+import { RateLimiter, SecureSession } from './core/security.js';
+import { ConnectionManager } from './core/connection.js';
+import { AccountManager } from './core/accounts.js';
+import { colorize, clearScreen, formatBytes } from './cli/colors.js';
+import { resilience } from './core/resilience.js';
+import { getOrGenerateSecret } from './core/secret.js';
+import { getDb, getStats as getDbStats, deleteGroupDownloads, deleteAllDownloads, backfillGroupNames } from './core/db.js';
+import { sanitizeName, migrateFolders } from './core/downloader.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '../data/config.json');

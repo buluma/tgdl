@@ -6,7 +6,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { Api } from 'telegram';
-import { colorize } from '../cli/colors.ts';
+import { colorize } from '../cli/colors.js';
 
 function getTs() {
     const d = new Date();

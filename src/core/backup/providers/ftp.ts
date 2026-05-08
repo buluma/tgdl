@@ -20,8 +20,8 @@
 
 import fs from 'fs';
 import { Transform } from 'stream';
-import { BackupProvider, optionalDepError } from './base.ts';
-import { encryptStream } from '../encryption.ts';
+import { BackupProvider, optionalDepError } from './base.js';
+import { encryptStream } from '../encryption.js';
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.BACKUP_FTP_TIMEOUT_MS) > 0
     ? Number(process.env.BACKUP_FTP_TIMEOUT_MS) : 30_000;

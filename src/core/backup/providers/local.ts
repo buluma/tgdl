@@ -12,8 +12,8 @@ import fsp from 'fs/promises';
 import path from 'path';
 import { pipeline } from 'stream/promises';
 import { Transform } from 'stream';
-import { BackupProvider } from './base.ts';
-import { encryptStream } from '../encryption.ts';
+import { BackupProvider } from './base.js';
+import { encryptStream } from '../encryption.js';
 
 export class LocalProvider extends BackupProvider {
     static get name() { return 'local'; }

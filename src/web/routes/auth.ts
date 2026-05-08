@@ -5,8 +5,8 @@ import {
     hashPassword, verifyPassword, loginVerify, isAuthConfigured,
     issueSession, validateSession, revokeSession,
     revokeAllSessions, revokeAllGuestSessions,
-} from '../../core/web-auth.ts';
-import { metrics } from '../../core/metrics.ts';
+} from '../../core/web-auth.js';
+import { metrics } from '../../core/metrics.js';
 
 export const SESSION_COOKIE_OPTS = {
     httpOnly: true,

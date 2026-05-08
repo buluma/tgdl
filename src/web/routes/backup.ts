@@ -1,5 +1,5 @@
 import express from 'express';
-import * as backup from '../../core/backup/index.ts';
+import * as backup from '../../core/backup/index.js';
 
 /**
  * Backup destination + job routes.

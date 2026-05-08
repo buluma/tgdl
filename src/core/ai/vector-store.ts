@@ -24,7 +24,7 @@
  * sqlite-vec is OPTIONAL — never fail to start when it's missing.
  */
 
-import { listAllImageEmbeddings } from '../db.ts';
+import { listAllImageEmbeddings } from '../db.js';
 
 let _vecExtensionAvailable = null;  // lazy probe
 

@@ -14,7 +14,7 @@
  *
  * Usage:
  *
- *   import { makeSafe } from '../lib/safe-route.ts';
+ *   import { makeSafe } from '../lib/safe-route.js';
  *   const safe = makeSafe({ log, prefix: 'ai' });
  *   router.get('/status', safe(async (req, res) => { ... }));
  */

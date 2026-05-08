@@ -15,17 +15,17 @@ import { EventEmitter } from 'events';
 import os from 'os';
 import { fileURLToPath } from 'url';
 
-import { getDb } from '../db.ts';
-import { encryptConfig, decryptConfig } from './credentials.ts';
-import { deriveKey, generateSalt } from './encryption.ts';
-import * as queue from './queue.ts';
+import { getDb } from '../db.js';
+import { encryptConfig, decryptConfig } from './credentials.js';
+import { deriveKey, generateSalt } from './encryption.js';
+import * as queue from './queue.js';
 
-import { LocalProvider } from './providers/local.ts';
-import { S3Provider } from './providers/s3.ts';
-import { SftpProvider } from './providers/sftp.ts';
-import { FtpProvider } from './providers/ftp.ts';
-import { GoogleDriveProvider } from './providers/gdrive.ts';
-import { DropboxProvider } from './providers/dropbox.ts';
+import { LocalProvider } from './providers/local.js';
+import { S3Provider } from './providers/s3.js';
+import { SftpProvider } from './providers/sftp.js';
+import { FtpProvider } from './providers/ftp.js';
+import { GoogleDriveProvider } from './providers/gdrive.js';
+import { DropboxProvider } from './providers/dropbox.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');

@@ -9,11 +9,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import { SecureSession } from './security.ts';
-import { getOrGenerateSecret } from './secret.ts';
-import { colorize } from '../cli/colors.ts';
-import { suppressNoise } from './logger.ts';
-import { buildProxy } from './proxy.ts';
+import { SecureSession } from './security.js';
+import { getOrGenerateSecret } from './secret.js';
+import { colorize } from '../cli/colors.js';
+import { suppressNoise } from './logger.js';
+import { buildProxy } from './proxy.js';
 
 function deferred() {
     let resolve, reject;

@@ -3,9 +3,9 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { getDb, getDownloads, getAllDownloads, searchDownloads, deleteDownloadsBy,
-    setDownloadPinned, getDownloadById } from '../../core/db.ts';
-import { sanitizeName } from '../../core/downloader.ts';
-import { purgeThumbsForDownload } from '../../core/thumbs.ts';
+    setDownloadPinned, getDownloadById } from '../../core/db.js';
+import { sanitizeName } from '../../core/downloader.js';
+import { purgeThumbsForDownload } from '../../core/thumbs.js';
 
 /**
  * Downloads listing, search, pin, bulk-delete, bulk-zip, and single-file delete routes.

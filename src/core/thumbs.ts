@@ -41,7 +41,7 @@ import { spawn, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import sharp from 'sharp';
-import { getDb } from './db.ts';
+import { getDb } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');

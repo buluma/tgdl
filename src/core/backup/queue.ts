@@ -15,7 +15,7 @@
 // sweep resets `uploading` rows that were claimed by a previous boot to
 // `pending`. No in-memory queue, no lost jobs.
 
-import { getDb } from '../db.ts';
+import { getDb } from '../db.js';
 
 /**
  * Insert a new pending job.

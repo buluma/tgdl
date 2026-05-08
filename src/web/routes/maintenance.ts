@@ -4,21 +4,21 @@ import fsSync, { existsSync } from 'fs';
 import path from 'path';
 import { getDb, deleteGroupDownloads, deleteAllDownloads,
     getNsfwTierCounts, getNsfwHistogram, getNsfwListByTier, getNsfwIdsByTier,
-    reclassifyNsfw, unwhitelistNsfw, NSFW_TIERS } from '../../core/db.ts';
-import { sanitizeName } from '../../core/downloader.ts';
-import * as integrity from '../../core/integrity.ts';
-import { findDuplicates as dedupFindDuplicates, deleteByIds as dedupDeleteByIds } from '../../core/dedup.ts';
+    reclassifyNsfw, unwhitelistNsfw, NSFW_TIERS } from '../../core/db.js';
+import { sanitizeName } from '../../core/downloader.js';
+import * as integrity from '../../core/integrity.js';
+import { findDuplicates as dedupFindDuplicates, deleteByIds as dedupDeleteByIds } from '../../core/dedup.js';
 import { getOrCreateThumb, purgeThumbsForDownload, purgeAllThumbs,
     getThumbsCacheStats, buildAllThumbnails, hasFfmpeg,
-    ALLOWED_WIDTHS as THUMB_WIDTHS } from '../../core/thumbs.ts';
+    ALLOWED_WIDTHS as THUMB_WIDTHS } from '../../core/thumbs.js';
 import { startScan as nsfwStartScan, cancelScan as nsfwCancelScan,
     isScanRunning as nsfwIsScanRunning, getScanState as nsfwGetScanState,
     preloadClassifier as nsfwPreloadClassifier, clearClassifierCache as nsfwClearCache,
     classifierReady as nsfwClassifierReady,
     NSFW_DEFAULTS, getNsfwStats, getNsfwDeleteCandidates,
-    whitelistNsfw } from '../../core/nsfw.ts';
-import { isAuthConfigured, loginVerify, revokeAllSessions } from '../../core/web-auth.ts';
-import { SESSION_COOKIE_OPTS } from './auth.ts';
+    whitelistNsfw } from '../../core/nsfw.js';
+import { isAuthConfigured, loginVerify, revokeAllSessions } from '../../core/web-auth.js';
+import { SESSION_COOKIE_OPTS } from './auth.js';
 
 function tgAuthErrorBody(e) {
     if (e?.code === 'NO_API_CREDS') {

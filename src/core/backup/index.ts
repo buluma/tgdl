@@ -18,10 +18,10 @@ export {
     setEncryption,
     unlockEncryption,
     retryJob,
-} from './manager.ts';
+} from './manager.js';
 
 export {
     listJobs,
     listRecent,
     getJob,
-} from './queue.ts';
+} from './queue.js';

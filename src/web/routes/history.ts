@@ -2,7 +2,7 @@ import express from 'express';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 import path from 'path';
-import { BACKFILL_MAX_LIMIT, HISTORY_JOB_TTL_MS } from '../../core/constants.ts';
+import { BACKFILL_MAX_LIMIT, HISTORY_JOB_TTL_MS } from '../../core/constants.js';
 
 // jobId → { id, state, processed, downloaded, error, group, groupId, limit,
 //           startedAt, finishedAt, cancelled, _runner }

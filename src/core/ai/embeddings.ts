@@ -15,8 +15,8 @@
  */
 
 import { existsSync } from 'fs';
-import { getPipeline, AI_MODEL_DEFAULTS } from './models.ts';
-import { l2Normalize } from './vector-store.ts';
+import { getPipeline, AI_MODEL_DEFAULTS } from './models.js';
+import { l2Normalize } from './vector-store.js';
 
 let _imagePipelinePromise = null;
 let _textPipelinePromise = null;

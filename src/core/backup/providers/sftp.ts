@@ -14,8 +14,8 @@ import fs from 'fs';
 import path from 'path';
 import { Transform } from 'stream';
 import SftpClient from 'ssh2-sftp-client';
-import { BackupProvider } from './base.ts';
-import { encryptStream } from '../encryption.ts';
+import { BackupProvider } from './base.js';
+import { encryptStream } from '../encryption.js';
 
 export class SftpProvider extends BackupProvider {
     static get name() { return 'sftp'; }

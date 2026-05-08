@@ -5,7 +5,7 @@
  * 50 KB prom-client library.
  *
  * Usage:
- *   import { metrics } from './core/metrics.ts';
+ *   import { metrics } from './core/metrics.js';
  *   metrics.inc('tgdl_downloads_total', 1, { type: 'photo' });
  *   metrics.set('tgdl_queue_size', 42);
  *   metrics.observe('tgdl_download_duration_seconds', 12.3, { type: 'video' });

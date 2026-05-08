@@ -1,5 +1,5 @@
 import express from 'express';
-import { listUserStories, listAllStories, storyToJob } from '../../core/stories.ts';
+import { listUserStories, listAllStories, storyToJob } from '../../core/stories.js';
 
 function tgAuthErrorBody(e) {
     if (e?.code === 'NO_API_CREDS') {

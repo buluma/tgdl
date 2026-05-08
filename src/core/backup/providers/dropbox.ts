@@ -23,8 +23,8 @@
 
 import fs from 'fs';
 import { Transform } from 'stream';
-import { BackupProvider, optionalDepError } from './base.ts';
-import { encryptStream } from '../encryption.ts';
+import { BackupProvider, optionalDepError } from './base.js';
+import { encryptStream } from '../encryption.js';
 
 const SINGLE_SHOT_LIMIT = 150 * 1024 * 1024;
 const DEFAULT_CHUNK_BYTES = Number(process.env.BACKUP_DROPBOX_CHUNK_BYTES) > 0

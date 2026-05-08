@@ -14,26 +14,26 @@ export {
     searchByText,
     pregenerateAi,
     AI_DEFAULTS,
-} from './manager.ts';
+} from './manager.js';
 
 export {
     loadExtensionOnce as loadVecExtension,
     clearCache as clearVectorCache,
     cosine,
     l2Normalize,
-} from './vector-store.ts';
+} from './vector-store.js';
 
 export {
     computePhash,
     hammingDistance,
     groupNearDuplicates,
-} from './phash.ts';
+} from './phash.js';
 
-export { embedText, embedImage } from './embeddings.ts';
-export { dbscan } from './faces.ts';
+export { embedText, embedImage } from './embeddings.js';
+export { dbscan } from './faces.js';
 export {
     loadedPipelines, AI_MODEL_DEFAULTS,
     inspectModelCache, deleteModelCache, clearPipelineForModel,
     pipelineMetaSnapshot, pipelineErrorsSnapshot, setModelProgressHook,
     resolveCacheDir,
-} from './models.ts';
+} from './models.js';

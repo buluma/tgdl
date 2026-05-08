@@ -6,8 +6,8 @@
 import { NewMessage, Raw } from 'telegram/events/index.js';
 import { Api } from 'telegram';
 import { EventEmitter } from 'events';
-import { colorize } from '../cli/colors.ts';
-import { sanitizeName } from './downloader.ts';
+import { colorize } from '../cli/colors.js';
+import { sanitizeName } from './downloader.js';
 
 // Kenyan local time (UTC+3) - readable format
 const ts = () => {
@@ -15,8 +15,8 @@ const ts = () => {
     const opt = { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
     return new Intl.DateTimeFormat('en-KE', opt).format(d).replace(/,/, '');
 };
-import { markRescued } from './db.ts';
-import { effectiveRescueMs } from './rescue.ts';
+import { markRescued } from './db.js';
+import { effectiveRescueMs } from './rescue.js';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
