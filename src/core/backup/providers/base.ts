@@ -100,8 +100,7 @@ export class BackupProvider {
      * @returns {AsyncGenerator<ListEntry>}
      */
     async *list(_prefix: string, _ctx: BackupContext): AsyncGenerator<ListEntry> {
-        if (false) yield {} as ListEntry;
-        return; // subclass must override
+        yield* []; // subclass must override
     }
 
     /**
