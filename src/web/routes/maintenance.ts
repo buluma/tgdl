@@ -799,7 +799,7 @@ export function createMaintenanceRouter({
             // Output shape (ffmpeg ≥4.x):
             //   Hardware acceleration methods:\nvaapi\nqsv\ncuda\nvideotoolbox\n
             const KNOWN = new Set(['vaapi', 'qsv', 'cuda', 'videotoolbox', 'd3d11va', 'dxva2', 'opencl', 'vulkan', 'drm']);
-            const available = out.split(/\r?\n/)
+            const available = (out as string).split(/\r?\n/)
                 .map((s) => s.trim().toLowerCase())
                 .filter((s) => KNOWN.has(s));
             res.json({
@@ -1032,8 +1032,8 @@ export function createMaintenanceRouter({
     router.get('/api/maintenance/nsfw/results', async (req, res) => {
         try {
             const cfg = _nsfwCfg();
-            const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-            const limit = Math.max(1, Math.min(200, parseInt(req.query.limit, 10) || 50));
+            const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+            const limit = Math.max(1, Math.min(200, parseInt(req.query.limit as string, 10) || 50));
             const r = getNsfwDeleteCandidates({
                 fileTypes: cfg.fileTypes,
                 threshold: cfg.threshold,
@@ -1173,7 +1173,7 @@ export function createMaintenanceRouter({
             }
             try { broadcast({ type: 'bulk_delete', ids }); } catch {}
             try { broadcast({ type: 'nsfw_progress', ..._nsfwStateLight() }); } catch {}
-            log({ source: 'nsfw', level: 'info', msg: `bulk-delete done: removed=${result?.deleted ?? result?.removed ?? ids.length}` });
+            log({ source: 'nsfw', level: 'info', msg: `bulk-delete done: removed=${(result as any)?.deleted ?? result?.removed ?? ids.length}` });
             return { op: 'delete', deleted: ids.length, ids, ...result };
         });
         if (!r.started) {
@@ -1304,7 +1304,7 @@ export function createMaintenanceRouter({
         const sources = (req.query.source ? String(req.query.source).split(',') : null);
         const minLevel = req.query.level || null;
         const levelOrder = { info: 0, warn: 1, error: 2 };
-        const minLvl = minLevel ? (levelOrder[minLevel] ?? 0) : 0;
+        const minLvl = minLevel ? (levelOrder[minLevel as string] ?? 0) : 0;
         const filtered = logBuffer.filter((e) => {
             if (sources && !sources.includes(e.source)) return false;
             if ((levelOrder[e.level] ?? 0) < minLvl) return false;

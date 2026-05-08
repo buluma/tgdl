@@ -80,7 +80,7 @@ console.error = wrapConsoleMethod(console.error, 'gramjs');
 // broken module on disk. Catch the rejection here, log once, move on.
 let _nativeLoadFailWarned = false;
 process.on('unhandledRejection', (reason) => {
-    const msg = reason?.message || String(reason);
+    const msg = (reason as any)?.message || String(reason);
     if (suppressNoise(msg, 'unhandledRejection')) return;
     if (NATIVE_LOAD_FAIL.test(msg)) {
         if (!_nativeLoadFailWarned) {
@@ -847,10 +847,10 @@ function _refreshShareLimiter() {
 // minted before the v2 cutover still work until they expire naturally.
 app.get(['/share/:linkId', '/share/:linkId/:fileName'], shareLimiter, async (req, res, next) => {
     try {
-        const linkId = parseInt(req.params.linkId, 10);
+        const linkId = parseInt(req.params.linkId as string, 10);
         const sigV2 = typeof req.query.s === 'string' ? req.query.s : '';
         const sigV1 = typeof req.query.sig === 'string' ? req.query.sig : '';
-        const expV1 = parseInt(req.query.exp, 10);
+        const expV1 = parseInt(req.query.exp as string, 10);
         if (!Number.isInteger(linkId) || linkId <= 0 || (!sigV2 && !sigV1)) {
             return res.status(400).type('text/plain').send('Invalid share link');
         }
@@ -1673,7 +1673,7 @@ async function connectTelegram() {
         const sessionString = await loadSession();
         if (!sessionString) return null;
         const stringSession = new StringSession(sessionString);
-        telegramClient = new TelegramClient(stringSession, parseInt(config.telegram.apiId), config.telegram.apiHash, { connectionRetries: 3, useWSS: false });
+        telegramClient = new TelegramClient(stringSession as any, parseInt(config.telegram.apiId), config.telegram.apiHash, { connectionRetries: 3, useWSS: false });
         telegramClient.setLogLevel('none');
         await telegramClient.connect();
         if (await telegramClient.isUserAuthorized()) {
@@ -1769,7 +1769,7 @@ function formatBytes(bytes) {
 function broadcast(data) {
     const message = JSON.stringify(data);
     clients.forEach(client => {
-        if (client.readyState === 1) client.send(message);
+        if ((client as any).readyState === 1) (client as any).send(message);
     });
 }
 
@@ -1868,7 +1868,6 @@ app.use((err, req, res, _next) => {
     res.status(500).json({ error: err?.message || 'Internal Server Error' });
 });
 
-const PORT = process.env.PORT || 3000;
 // Without this, EADDRINUSE made the container exit silently with no clue
 // where to look. Print a clear message + exit non-zero so docker-compose
 // surfaces the failure instead of looping a hidden restart.
@@ -2013,7 +2012,7 @@ ${tip}
     // `monitor.autoStart: false` in config.json.
     try {
         const cfg = loadConfig();
-        const autoStart = cfg.monitor?.autoStart !== false;
+        const autoStart = (cfg as any).monitor?.autoStart !== false;
         const enabled = Array.isArray(cfg.groups) && cfg.groups.some(g => g?.enabled !== false);
         if (autoStart && enabled) {
             const am = await getAccountManager().catch(() => null);
@@ -2053,7 +2052,7 @@ async function gracefulShutdown(signal) {
     // of a TCP RST and don't spam reconnect attempts during the bounce.
     try {
         for (const c of clients) {
-            try { c.close(1001, 'server shutting down'); } catch {}
+            try { (c as any).close(1001, 'server shutting down'); } catch {}
         }
     } catch {}
 
@@ -2132,12 +2131,12 @@ async function resolveGroupNamesFromTelegram() {
             // Try multiple ID formats
             const candidates = [
                 Number(rawId),
-                BigInt(rawId),
+                BigInt(rawId as string),
             ];
             // If it starts with -, also try -100 prefix variant
-            if (rawId.startsWith('-') && !rawId.startsWith('-100')) {
-                candidates.push(Number('-100' + rawId.slice(1)));
-                candidates.push(BigInt('-100' + rawId.slice(1)));
+            if ((rawId as string).startsWith('-') && !(rawId as string).startsWith('-100')) {
+                candidates.push(Number('-100' + (rawId as string).slice(1)));
+                candidates.push(BigInt('-100' + (rawId as string).slice(1)));
             }
 
             for (const tryId of candidates) {
