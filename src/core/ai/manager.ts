@@ -278,16 +278,26 @@ export async function runPhashScan({ onProgress, signal, onLog, fileTypes = ['ph
         for (const row of batch) {
             if (signal?.aborted) break;
             const abs = _resolveAbs(row.file_path);
-            if (!abs) continue;
+            if (!abs) {
+                // File missing — mark as 0 so we never retry
+                setPhash(row.id, 0n);
+                summary.processed += 1;
+                continue;
+            }
             try {
                 const h = await computePhash(abs);
                 if (h != null) {
                     setPhash(row.id, h);
                     summary.phash += 1;
+                } else {
+                    // Unreadable / unsupported format — mark as 0 so we never retry
+                    setPhash(row.id, 0n);
                 }
             } catch (e) {
                 summary.errors += 1;
                 try { onLog?.({ source: 'ai', level: 'warn', msg: `phash row #${row.id}: ${e?.message || e}` }); } catch {}
+                // Also mark on error to avoid infinite retry
+                setPhash(row.id, 0n);
             }
             summary.processed += 1;
             if (summary.processed % 25 === 0 || summary.processed === summary.total) {

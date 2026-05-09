@@ -1434,6 +1434,7 @@ export function listAllPhashes({ fileTypes = ['photo'] } = {}) {
                created_at, phash
           FROM downloads
          WHERE phash IS NOT NULL
+           AND phash != 0
            AND file_type IN (${placeholders})
     `).safeIntegers(true);
     const rows = stmt.all(...types);
