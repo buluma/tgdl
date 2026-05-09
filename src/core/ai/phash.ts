@@ -104,7 +104,8 @@ export async function computePhash(absPath) {
             .greyscale()
             .raw()
             .toBuffer();
-    } catch {
+    } catch (e) {
+        console.error('pHash sharp error:', e);
         return null;
     }
     if (!raw || raw.length < SIZE * SIZE) return null;

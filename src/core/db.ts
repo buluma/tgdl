@@ -1306,7 +1306,8 @@ export function listPeople({ limit = 500, offset = 0 } = {}) {
     const off = Math.max(0, Number(offset) || 0);
     const rows = getDb().prepare(`
         SELECT p.id, p.label, p.face_count, p.created_at, p.updated_at,
-               (SELECT f.download_id FROM faces f WHERE f.person_id = p.id LIMIT 1) AS cover_download_id
+               (SELECT f.download_id FROM faces f WHERE f.person_id = p.id LIMIT 1) AS cover_download_id,
+               (SELECT f.id FROM faces f WHERE f.person_id = p.id LIMIT 1) AS cover_face_id
           FROM people p
          ORDER BY p.face_count DESC, p.id ASC
          LIMIT ? OFFSET ?

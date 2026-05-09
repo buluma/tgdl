@@ -15,7 +15,7 @@
  */
 
 import { existsSync } from 'fs';
-import { getPipeline, AI_MODEL_DEFAULTS } from './models.js';
+import { getPipeline, AI_MODEL_DEFAULTS, getClipTextEncoder } from './models.js';
 import { l2Normalize } from './vector-store.js';
 
 let _imagePipelinePromise = null;
@@ -45,13 +45,25 @@ async function _getImagePipeline(cfg, onProgress, onLog) {
 
 async function _getTextPipeline(cfg, onProgress, onLog) {
     if (_textPipelinePromise) return _textPipelinePromise;
-    _textPipelinePromise = getPipeline({
-        kind: AI_MODEL_DEFAULTS.embeddings.textKind,
-        modelId: _textModelId(cfg),
-        cacheDir: cfg?.cacheDir,
-        onProgress,
-        onLog,
-    }).catch((e) => {
+    const modelId = _textModelId(cfg);
+
+    // Transformers.js maps `pipeline('feature-extraction', clip-vit-...)` to
+    // the vision tower, so calling it with text fails at runtime with
+    // "Missing the following inputs: pixel_values". CLIP needs its text tower
+    // loaded directly (tokenizer + CLIPTextModelWithProjection); see
+    // models.getClipTextEncoder(). Non-CLIP embedding models keep using the
+    // generic feature-extraction pipeline.
+    const loader = /(^|\/)clip[-_]/i.test(modelId)
+        ? getClipTextEncoder({ modelId, cacheDir: cfg?.cacheDir, onProgress, onLog })
+        : getPipeline({
+            kind: AI_MODEL_DEFAULTS.embeddings.textKind,
+            modelId,
+            cacheDir: cfg?.cacheDir,
+            onProgress,
+            onLog,
+        });
+
+    _textPipelinePromise = loader.catch((e) => {
         _textPipelinePromise = null;
         throw e;
     });
@@ -66,7 +78,10 @@ async function _getTextPipeline(cfg, onProgress, onLog) {
  * `ai_indexed_at` timestamp regardless so the loop doesn't keep retrying.
  */
 export async function embedImage(absPath, cfg, onProgress, onLog) {
-    if (!absPath || !existsSync(absPath)) return null;
+    if (!absPath) return null;
+    // Most callers pass a path, but face clustering passes an in-memory crop
+    // Buffer. Only path inputs can/should be checked with existsSync().
+    if (typeof absPath === 'string' && !existsSync(absPath)) return null;
     const pipeline = await _getImagePipeline(cfg, onProgress, onLog);
     let out;
     try {
@@ -86,7 +101,8 @@ export async function embedText(query, cfg, onProgress, onLog) {
     let out;
     try {
         out = await pipeline(query, { pooling: 'mean', normalize: false });
-    } catch {
+    } catch (e) {
+        (onLog || console.error)({ source: 'ai', level: 'warn', msg: `embedText failed: ${e?.message || e}` });
         return null;
     }
     return _toFloat32(out);
@@ -170,3 +186,4 @@ export function _resetForTests() {
  * lets us probe each branch without spinning up Transformers.js.
  */
 export const _internals = { toFloat32: _toFloat32 };
+

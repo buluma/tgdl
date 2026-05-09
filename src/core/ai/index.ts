@@ -9,6 +9,8 @@
 export {
     runIndexScan,
     runPhashScan,
+    runFaceDetectionScan,
+    runPeopleScan,
     runFaceClustering,
     findPhashGroups,
     searchByText,

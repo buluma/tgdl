@@ -1,4 +1,7 @@
 import express from 'express';
+import path from 'path';
+import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 import * as ai from '../../core/ai/index.js';
 import {
     getDb,
@@ -6,6 +9,10 @@ import {
     renamePerson, deletePerson,
     listAllTags, listPhotosForTag,
 } from '../../core/db.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
+const FACES_DIR = path.join(PROJECT_ROOT, 'data', 'faces');
 
 // Per-capability descriptors used by the model-status endpoint. Mirrors
 // the names the dashboard already uses. The kind is the Transformers.js
@@ -67,6 +74,42 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
         if (_aiVecProbed) return;
         _aiVecProbed = true;
         try { await ai.loadVecExtension(getDb, log); } catch {}
+    }
+
+    function _tagCandidates(query) {
+        const raw = String(query || '').trim().replace(/^#/, '');
+        if (!raw) return [];
+        const lower = raw.toLowerCase();
+        return [...new Set([
+            raw,
+            lower,
+            lower.replace(/\s+/g, '-'),
+            lower.replace(/_/g, '-'),
+        ].filter(Boolean))];
+    }
+
+    function _tagSearch(query, { limit = 20, offset = 0 } = {}) {
+        for (const tag of _tagCandidates(query)) {
+            const r = listPhotosForTag(tag, { limit, offset });
+            if (!r?.total) continue;
+            return {
+                matchedTag: tag,
+                total: r.total,
+                results: (r.files || []).map((row) => ({
+                    download_id: row.id,
+                    score: Number(row.tag_score) || 0,
+                    tag_score: Number(row.tag_score) || 0,
+                    file_name: row.file_name,
+                    file_path: row.file_path,
+                    file_type: row.file_type,
+                    file_size: row.file_size,
+                    group_id: row.group_id,
+                    group_name: row.group_name,
+                    created_at: row.created_at,
+                })),
+            };
+        }
+        return null;
     }
 
     // Wire Transformers.js progress callbacks into the WS bus so the model
@@ -190,12 +233,24 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
             if (typeof query !== 'string' || !query.trim()) {
                 return res.status(400).json({ error: 'query required' });
             }
+            const q = query.trim();
+            const lim = Number(limit) || 20;
+
+            // Exact tag searches should work even when semantic embeddings are
+            // disabled or not indexed yet. The maintenance page advertises top
+            // tag chips in the same search box, so route matching tags directly
+            // to the tag index before falling through to CLIP text search.
+            const tagHit = _tagSearch(q, { limit: lim });
+            if (tagHit) {
+                return res.json({ success: true, source: 'tag', ...tagHit });
+            }
+
             const cfg = _aiCfg();
             if (!cfg.enabled || !cfg.embeddings.enabled) {
                 return res.status(503).json({ error: 'AI embeddings are disabled', code: 'EMBEDDINGS_DISABLED' });
             }
-            const r = await ai.searchByText(query.trim(), cfg, {
-                limit: Number(limit) || 20,
+            const r = await ai.searchByText(q, cfg, {
+                limit: lim,
                 fileTypes: Array.isArray(fileTypes) && fileTypes.length ? fileTypes : null,
                 onLog: log,
             });
@@ -213,7 +268,7 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
         }
         const tracker = getJobTracker('aiPeople');
         const r = tracker.tryStart(async ({ onProgress, signal }) => {
-            return ai.runFaceClustering(cfg, { onProgress, signal, onLog: log });
+            return ai.runPeopleScan(cfg, { onProgress, signal, onLog: log });
         });
         if (!r.started) return res.status(409).json({ error: 'Face clustering already running', code: 'ALREADY_RUNNING' });
         res.json({ success: true, started: true });
@@ -264,7 +319,26 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
         try {
             const limit = Number(req.query.limit) || 50;
             const offset = Number(req.query.offset) || 0;
-            res.json({ success: true, ...listPhotosForPerson(id, { limit, offset }) });
+            const result = listPhotosForPerson(id, { limit, offset });
+            // Enrich each file with face bounding boxes for overlay hints
+            const downloadIds = (result.files || []).map((f) => f.id);
+            let faceMap = {};
+            if (downloadIds.length) {
+                const placeholders = downloadIds.map(() => '?').join(',');
+                const faces = getDb().prepare(`
+                    SELECT id, download_id, x, y, w, h FROM faces
+                     WHERE person_id = ? AND download_id IN (${placeholders})
+                `).all(Number(id), ...downloadIds);
+                for (const f of faces) {
+                    if (!faceMap[f.download_id]) faceMap[f.download_id] = [];
+                    faceMap[f.download_id].push({ id: f.id, x: f.x, y: f.y, w: f.w, h: f.h });
+                }
+            }
+            const files = (result.files || []).map((f) => ({
+                ...f,
+                faces: faceMap[f.id] || [],
+            }));
+            res.json({ success: true, files, total: result.total });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }
@@ -348,7 +422,20 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
             if (!tag) return res.status(400).json({ error: 'tag required' });
             const limit = Number(req.query.limit) || 50;
             const offset = Number(req.query.offset) || 0;
-            res.json({ success: true, ...listPhotosForTag(tag, { limit, offset }) });
+            const hit = _tagSearch(tag, { limit, offset });
+            if (hit) {
+                return res.json({
+                    success: true,
+                    matchedTag: hit.matchedTag,
+                    files: hit.results.map(({ download_id, score, ...row }) => ({
+                        id: download_id,
+                        tag_score: score,
+                        ...row,
+                    })),
+                    total: hit.total,
+                });
+            }
+            res.json({ success: true, files: [], total: 0 });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }
@@ -478,6 +565,25 @@ export function createAiRouter({ loadConfig, getJobTracker, broadcast, log }) {
             log({ source: 'ai', level: 'error', msg: `similar search failed: ${e?.message || e}` });
             res.status(500).json({ error: e.message });
         }
+    });
+
+    // ---- Face thumbnails ---------------------------------------------------
+    //
+    // Serve face crop thumbnails from `data/faces/{faceId}.webp`.
+    // Returns 404 when the thumbnail doesn't exist yet (face scan may still
+    // be running or was run before thumbnails were introduced).
+    router.get('/api/ai/faces/:id/thumbnail', async (req, res) => {
+        const id = parseInt(req.params.id, 10);
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).type('text/plain').send('Bad face id');
+        }
+        const thumbPath = path.join(FACES_DIR, `${id}.webp`);
+        if (!existsSync(thumbPath)) {
+            return res.status(404).type('text/plain').send('No face thumbnail');
+        }
+        res.setHeader('Content-Type', 'image/webp');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.sendFile(thumbPath);
     });
 
     return router;

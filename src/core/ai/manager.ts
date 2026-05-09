@@ -37,7 +37,7 @@ import {
 } from '../db.js';
 import { vectorToBlob, blobToVector, l2Normalize, topK as vectorTopK, clearCache as clearVectorCache } from './vector-store.js';
 import { embedImage, embedText } from './embeddings.js';
-import { detectFaces, embedFace, dbscan, centroidToBlob } from './faces.js';
+import { detectFaces, embedFace, dbscan, centroidToBlob, saveFaceThumbnail } from './faces.js';
 import { classifyImage } from './tags.js';
 import { computePhash, groupNearDuplicates } from './phash.js';
 
@@ -147,13 +147,18 @@ async function _runOneRow(absPath: any, downloadId: any, cfg: any, onLog?: any) 
                 for (const d of dets) {
                     const fvec = await embedFace(absPath, d, cfg.embeddings, onLog);
                     if (!fvec) continue;
-                    insertFace({
+                    const faceResult = insertFace({
                         downloadId,
                         x: d.x, y: d.y, w: d.w, h: d.h,
                         embeddingBlob: vectorToBlob(fvec),
                         personId: null,
                     });
                     result.faces += 1;
+                    // Save face thumbnail asynchronously (fire-and-forget)
+                    const faceId = faceResult?.lastInsertRowid;
+                    if (faceId != null) {
+                        saveFaceThumbnail(absPath, d, faceId, onLog).catch(() => {});
+                    }
                 }
                 touched = true;
             }
@@ -298,6 +303,100 @@ export async function runPhashScan({ onProgress, signal, onLog, fileTypes = ['ph
  * Re-cluster every face row into people. Wipes the existing people table
  * first — faces survive (their embeddings are preserved) and get re-assigned.
  */
+export async function runFaceDetectionScan(cfg: any, { onProgress, signal, onLog }: any = {}) {
+    const merged = _coerceConfig(cfg);
+    if (!merged.enabled || !merged.faces?.enabled) {
+        return { skipped: true, reason: 'Face detection is disabled' };
+    }
+
+    const fileTypes = merged.fileTypes;
+    const placeholders = fileTypes.map(() => '?').join(',');
+    const batchSize = Math.max(1, Math.min(200, Number(merged.batchSize) || 25));
+    const summary = { processed: 0, total: 0, photosWithFaces: 0, faces: 0, errors: 0 };
+
+    try {
+        const row = getDb().prepare(`
+            SELECT COUNT(*) AS n
+              FROM downloads d
+             WHERE d.file_type IN (${placeholders})
+               AND NOT EXISTS (SELECT 1 FROM faces f WHERE f.download_id = d.id)
+        `).get(...fileTypes);
+        summary.total = row?.n || 0;
+    } catch {}
+
+    onProgress?.({ stage: 'detecting_faces', ...summary });
+
+    let lastId = 0;
+    while (!signal?.aborted) {
+        const rows = getDb().prepare(`
+            SELECT d.id, d.group_id, d.group_name, d.file_name, d.file_path, d.file_type, d.file_size, d.created_at
+              FROM downloads d
+             WHERE d.file_type IN (${placeholders})
+               AND d.id > ?
+               AND NOT EXISTS (SELECT 1 FROM faces f WHERE f.download_id = d.id)
+             ORDER BY d.id ASC
+             LIMIT ?
+        `).all(...fileTypes, lastId, batchSize);
+        if (!rows.length) break;
+
+        for (const row of rows) {
+            if (signal?.aborted) break;
+            lastId = Math.max(lastId, Number(row.id) || 0);
+            const abs = _resolveAbs(row.file_path);
+            if (!abs) {
+                summary.processed += 1;
+                continue;
+            }
+            try {
+                const dets = await detectFaces(abs, merged.faces, undefined, onLog);
+                let inserted = 0;
+                const prepared = [];
+                for (const d of dets) {
+                    const fvec = await embedFace(abs, d, merged.embeddings, onLog);
+                    if (!fvec) continue;
+                    prepared.push({
+                        downloadId: row.id,
+                        x: d.x, y: d.y, w: d.w, h: d.h,
+                        embeddingBlob: vectorToBlob(fvec),
+                        personId: null,
+                    });
+                }
+                if (prepared.length) {
+                    deleteFacesForDownload(row.id);
+                    for (const f of prepared) {
+                        const faceResult = insertFace(f);
+                        inserted += 1;
+                        // Save face thumbnail asynchronously
+                        const faceId = faceResult?.lastInsertRowid;
+                        if (faceId != null) {
+                            saveFaceThumbnail(abs, { x: f.x, y: f.y, w: f.w, h: f.h }, faceId, onLog).catch(() => {});
+                        }
+                    }
+                    summary.photosWithFaces += 1;
+                    summary.faces += inserted;
+                }
+            } catch (e) {
+                summary.errors += 1;
+                try { onLog?.({ source: 'ai', level: 'warn', msg: `face detection failed for #${row.id}: ${e?.message || e}` }); } catch {}
+            }
+            summary.processed += 1;
+            if (summary.processed % 5 === 0 || summary.processed === summary.total) {
+                onProgress?.({ stage: 'detecting_faces', ...summary });
+            }
+        }
+    }
+
+    onProgress?.({ stage: 'faces_detected', ...summary });
+    return summary;
+}
+
+export async function runPeopleScan(cfg: any, { onProgress, signal, onLog }: any = {}) {
+    const detection = await runFaceDetectionScan(cfg, { onProgress, signal, onLog });
+    if (signal?.aborted) return { aborted: true, detection };
+    const clustering = await runFaceClustering(cfg, { onProgress, signal, onLog });
+    return { detection, clustering };
+}
+
 export async function runFaceClustering(cfg: any, { onProgress, signal, onLog: _onLog = null }: any = {}) {
     const merged = _coerceConfig(cfg);
     onProgress?.({ stage: 'loading_faces' });
