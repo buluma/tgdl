@@ -979,6 +979,12 @@ export function setupViewerEvents() {
         }
     });
 
+    document.getElementById('modal-similar')?.addEventListener('click', async () => {
+        const file = state.files[state.currentFileIndex];
+        if (!file?.id) return;
+        window.navigateTo?.('maintenance/ai?similar=' + file.id);
+    });
+
     // Modal-level fullscreen button (top-right). Picks the smallest
     // active container so we don't drag the full modal chrome (counter
     // pill, prev/next buttons) into the fullscreen surface unless we

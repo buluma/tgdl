@@ -277,7 +277,7 @@ export async function runSearch({ query, limit = 24, fileTypes = null,
 /**
  * Run a "More like this" similar-search and render the grid in place.
  */
-async function runSimilar({ source, limit = 24, resultsEl, emptyEl, ctaEl, metaEl }) {
+export async function runSimilar({ source, limit = 24, resultsEl, emptyEl, ctaEl, metaEl }) {
     _hideAllStates({ emptyEl, ctaEl });
     const myToken = ++_queryToken;
     if (resultsEl) resultsEl.innerHTML = _renderShimmerTiles();

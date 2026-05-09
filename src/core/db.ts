@@ -1261,6 +1261,17 @@ export function listAllImageEmbeddings({ fileTypes = null } = {}) {
     `).all(...params);
 }
 
+export function getImageEmbedding(downloadId) {
+    return getDb().prepare(`
+        SELECT e.download_id, e.embedding, e.model, e.indexed_at,
+               d.id, d.group_id, d.group_name, d.file_name, d.file_path,
+               d.file_type, d.file_size, d.created_at
+          FROM image_embeddings e
+          JOIN downloads d ON d.id = e.download_id
+         WHERE e.download_id = ?
+    `).get(Number(downloadId)) || null;
+}
+
 // ---- Faces & people -------------------------------------------------------
 
 export function insertFace({ downloadId, x, y, w, h, embeddingBlob, personId = null }) {

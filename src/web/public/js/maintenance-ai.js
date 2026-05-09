@@ -658,4 +658,32 @@ export async function init() {
     await _refreshModels();
     await _hydrateFromStatus();
     _scheduleModelsRefresh();
+
+    // Check for ?similar=<downloadId> in the URL hash and auto-trigger
+    // a "More like this" similar-search on page load.
+    const hash = window.location.hash;
+    const qIdx = hash.indexOf('?');
+    if (qIdx >= 0) {
+        const params = new URLSearchParams(hash.slice(qIdx + 1));
+        const similarId = params.get('similar');
+        if (similarId) {
+            const cleanHash = hash.slice(0, qIdx);
+            history.replaceState(null, '', `#${cleanHash}`);
+            queueMicrotask(async () => {
+                try {
+                    const { runSimilar } = await import('./ai-search.js');
+                    const $ = (id) => document.getElementById(id);
+                    await runSimilar({
+                        source: { download_id: Number(similarId) },
+                        resultsEl: $('ai-search-results'),
+                        emptyEl: $('ai-search-empty'),
+                        ctaEl: $('ai-search-cta'),
+                        metaEl: $('ai-search-meta'),
+                    });
+                } catch (e) {
+                    console.error('similar auto-search:', e);
+                }
+            });
+        }
+    }
 }

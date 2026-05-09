@@ -465,6 +465,7 @@
     "viewer.video.delete": "Delete",
     "viewer.video.download": "Download",
     "viewer.video.share": "Share",
+    "viewer.video.similar": "Find similar",
     "viewer.video.share_title": "Create a share link — friends can open the file without logging in",
     "viewer.video.speed": "Speed",
     "viewer.video.pip": "PiP",
