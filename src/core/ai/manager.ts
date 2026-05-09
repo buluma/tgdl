@@ -38,6 +38,7 @@ import {
 import { vectorToBlob, blobToVector, l2Normalize, topK as vectorTopK, clearCache as clearVectorCache } from './vector-store.js';
 import { embedImage, embedText } from './embeddings.js';
 import { detectFaces, embedFace, dbscan, centroidToBlob, saveFaceThumbnail } from './faces.js';
+import { detectFacesPython } from './python-bridge.js';
 import { classifyImage } from './tags.js';
 import { computePhash, groupNearDuplicates } from './phash.js';
 
@@ -53,7 +54,7 @@ export const AI_DEFAULTS = Object.freeze({
     enabled: false,
     embeddings: { enabled: false, model: 'Xenova/clip-vit-base-patch32' },
     faces:      { enabled: false, model: 'Xenova/yolos-tiny',
-                  epsilon: 0.55, minPoints: 3 },
+                  backend: 'transformers', epsilon: 0.55, minPoints: 3 },
     tags:       { enabled: false, model: 'Xenova/vit-base-patch16-224', topK: 5 },
     phash:      { enabled: false },
     indexConcurrency: 1,
@@ -141,26 +142,51 @@ async function _runOneRow(absPath: any, downloadId: any, cfg: any, onLog?: any) 
 
     if (cap.faces) {
         try {
-            const dets = await detectFaces(absPath, cfg.faces, undefined, onLog);
-            if (dets.length) {
-                deleteFacesForDownload(downloadId);
-                for (const d of dets) {
-                    const fvec = await embedFace(absPath, d, cfg.embeddings, onLog);
-                    if (!fvec) continue;
-                    const faceResult = insertFace({
-                        downloadId,
-                        x: d.x, y: d.y, w: d.w, h: d.h,
-                        embeddingBlob: vectorToBlob(fvec),
-                        personId: null,
-                    });
-                    result.faces += 1;
-                    // Save face thumbnail asynchronously (fire-and-forget)
-                    const faceId = faceResult?.lastInsertRowid;
-                    if (faceId != null) {
-                        saveFaceThumbnail(absPath, d, faceId, onLog).catch(() => {});
+            const backend = cfg.faces?.backend || 'transformers';
+            if (backend === 'python') {
+                // Python bridge: detection + ArcFace recognition in one shot
+                const pyResult = await detectFacesPython(absPath);
+                if (pyResult.faces.length) {
+                    deleteFacesForDownload(downloadId);
+                    for (const face of pyResult.faces) {
+                        const [x1, y1, x2, y2] = face.bbox;
+                        const fvec = face.embedding;
+                        const faceResult = insertFace({
+                            downloadId,
+                            x: x1, y: y1, w: x2 - x1, h: y2 - y1,
+                            embeddingBlob: vectorToBlob(fvec),
+                            personId: null,
+                        });
+                        result.faces += 1;
+                        const faceId = faceResult?.lastInsertRowid;
+                        if (faceId != null) {
+                            saveFaceThumbnail(absPath, { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }, faceId, onLog).catch(() => {});
+                        }
                     }
+                    touched = true;
                 }
-                touched = true;
+            } else {
+                // Transformers.js path (current default)
+                const dets = await detectFaces(absPath, cfg.faces, undefined, onLog);
+                if (dets.length) {
+                    deleteFacesForDownload(downloadId);
+                    for (const d of dets) {
+                        const fvec = await embedFace(absPath, d, cfg.embeddings, onLog);
+                        if (!fvec) continue;
+                        const faceResult = insertFace({
+                            downloadId,
+                            x: d.x, y: d.y, w: d.w, h: d.h,
+                            embeddingBlob: vectorToBlob(fvec),
+                            personId: null,
+                        });
+                        result.faces += 1;
+                        const faceId = faceResult?.lastInsertRowid;
+                        if (faceId != null) {
+                            saveFaceThumbnail(absPath, d, faceId, onLog).catch(() => {});
+                        }
+                    }
+                    touched = true;
+                }
             }
         } catch (e) {
             try { onLog?.({ source: 'ai', level: 'warn', msg: `faces failed for #${downloadId}: ${e?.message || e}` }); } catch {}
