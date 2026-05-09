@@ -384,18 +384,33 @@ export async function runFaceDetectionScan(cfg: any, { onProgress, signal, onLog
                 continue;
             }
             try {
-                const dets = await detectFaces(abs, merged.faces, undefined, onLog);
+                const backend = merged.faces?.backend || 'transformers';
                 let inserted = 0;
                 const prepared = [];
-                for (const d of dets) {
-                    const fvec = await embedFace(abs, d, merged.embeddings, onLog);
-                    if (!fvec) continue;
-                    prepared.push({
-                        downloadId: row.id,
-                        x: d.x, y: d.y, w: d.w, h: d.h,
-                        embeddingBlob: vectorToBlob(fvec),
-                        personId: null,
-                    });
+
+                if (backend === 'python') {
+                    const pyResult = await detectFacesPython(abs);
+                    for (const face of pyResult.faces) {
+                        const [x1, y1, x2, y2] = face.bbox;
+                        prepared.push({
+                            downloadId: row.id,
+                            x: x1, y: y1, w: x2 - x1, h: y2 - y1,
+                            embeddingBlob: vectorToBlob(face.embedding),
+                            personId: null,
+                        });
+                    }
+                } else {
+                    const dets = await detectFaces(abs, merged.faces, undefined, onLog);
+                    for (const d of dets) {
+                        const fvec = await embedFace(abs, d, merged.embeddings, onLog);
+                        if (!fvec) continue;
+                        prepared.push({
+                            downloadId: row.id,
+                            x: d.x, y: d.y, w: d.w, h: d.h,
+                            embeddingBlob: vectorToBlob(fvec),
+                            personId: null,
+                        });
+                    }
                 }
                 if (prepared.length) {
                     deleteFacesForDownload(row.id);
