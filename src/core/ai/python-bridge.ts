@@ -150,3 +150,6 @@ export function detectFacesOneShot(absPath: string): Promise<FaceDetectionResult
     });
   });
 }
+
+// Auto-cleanup on process exit
+process.on('exit', () => { shutdownPythonFaces(); });
