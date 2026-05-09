@@ -521,12 +521,31 @@ async function _drainBg() {
         };
         if (!Object.values(capabilities).some(Boolean)) { _bgQueue.length = 0; return; }
         const db = getDb();
-        const lookup = db.prepare('SELECT id, file_path, file_type, ai_indexed_at FROM downloads WHERE id = ?');
+        const lookup = db.prepare('SELECT id, group_id, file_path, file_type, ai_indexed_at FROM downloads WHERE id = ?');
+        // Load group config once per drain cycle to check deleteAfterForward
+        let groupAfMap = null;
+        try {
+            const live = loadConfig();
+            const groups = live.groups || [];
+            groupAfMap = new Map();
+            for (const g of groups) {
+                const af = g.autoForward;
+                if (af && af.enabled && af.deleteAfterForward) {
+                    groupAfMap.set(String(g.id), true);
+                }
+            }
+        } catch { /* best-effort */ }
         while (_bgQueue.length) {
             const id = _bgQueue.shift();
             const row = lookup.get(Number(id));
             if (!row) continue;
             if (row.ai_indexed_at != null) continue;
+            // Skip AI for groups that delete after forwarding — files won't
+            // be on disk by the time the AI scanner gets to them.
+            if (groupAfMap && groupAfMap.has(String(row.group_id))) {
+                setAiIndexedAt(row.id);
+                continue;
+            }
             const eligible = (cfg.fileTypes || ['photo']).includes(String(row.file_type || '').toLowerCase());
             if (!eligible) continue;
             const abs = _resolveAbs(row.file_path);
