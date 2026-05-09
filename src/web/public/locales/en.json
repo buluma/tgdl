@@ -893,6 +893,8 @@
     "maintenance.hub.backup.body": "NAS / S3 / SFTP / Google Drive / Dropbox mirror + scheduled snapshots.",
     "maintenance.hub.ai.title": "AI search & people",
     "maintenance.hub.ai.body": "Local-only semantic search, face clustering, perceptual dedup, auto-tags.",
+    "maintenance.hub.db-stats.title": "Database stats",
+    "maintenance.hub.db-stats.body": "Table sizes, group breakdown, file types, disk usage, and AI indexing status.",
     "settings.autosave.notify.saved": "Settings saved.",
     "settings.advanced.thumbs.hwaccel": "Video thumb hardware acceleration",
     "settings.advanced.thumbs.hwaccel_label": "Decoder backend",
@@ -1443,5 +1445,7 @@
     "maintenance.ai.model.swap.wipe_title": "Delete the cached weights so the next load redownloads.",
     "maintenance.ai.model.swap.wipe_confirm": "Delete cached weights for {id}? The next load will redownload.",
     "maintenance.ai.model.swap.wiped": "Wiped {id}",
-    "maintenance.ai.model.swap.wipe_failed": "Wipe failed: {msg}"
+    "maintenance.ai.model.swap.wipe_failed": "Wipe failed: {msg}",
+    "maintenance.db-stats.title": "Database stats",
+    "maintenance.db-stats.subtitle": "Table sizes, group breakdown, file types, and AI indexing status."
 }

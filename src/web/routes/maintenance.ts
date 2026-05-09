@@ -1397,5 +1397,78 @@ export function createMaintenanceRouter({
         }
     });
 
+    // ── DB Stats ────────────────────────────────────────────────────────────
+
+    // Aggregate stats about the download catalogue, AI indexing, and disk usage.
+    router.get('/api/db/stats', async (req, res) => {
+        try {
+            const db = getDb();
+
+            const tables = ['downloads', 'faces', 'people', 'image_embeddings', 'image_tags', 'queue'];
+            const tableCounts: Record<string, number> = {};
+            for (const t of tables) {
+                try {
+                    const r = db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as any;
+                    tableCounts[t] = r?.n || 0;
+                } catch { tableCounts[t] = 0; }
+            }
+
+            const groups = db.prepare(`
+                SELECT group_name, COUNT(*) AS n,
+                       SUM(CASE WHEN file_type = 'photo' THEN 1 ELSE 0 END) AS photos,
+                       SUM(CASE WHEN file_type = 'video' THEN 1 ELSE 0 END) AS videos,
+                       SUM(file_size) AS bytes,
+                       MAX(created_at) AS last_activity
+                  FROM downloads
+                 GROUP BY group_name
+                 ORDER BY last_activity DESC
+            `).all();
+
+            const totals = db.prepare(`
+                SELECT COUNT(*) AS total,
+                       SUM(CASE WHEN file_type = 'photo' THEN 1 ELSE 0 END) AS photos,
+                       SUM(CASE WHEN file_type = 'video' THEN 1 ELSE 0 END) AS videos,
+                       SUM(CASE WHEN file_type = 'audio' THEN 1 ELSE 0 END) AS audio,
+                       SUM(CASE WHEN file_type = 'document' THEN 1 ELSE 0 END) AS documents,
+                       SUM(CASE WHEN file_type = 'voice' THEN 1 ELSE 0 END) AS voice,
+                       SUM(file_size) AS bytes
+                  FROM downloads
+            `).get();
+
+            const recent = db.prepare(`
+                SELECT group_name, COUNT(*) AS n, SUM(file_size) AS bytes
+                  FROM downloads
+                 WHERE created_at >= datetime('now', '-30 minutes')
+                 GROUP BY group_name
+                 ORDER BY n DESC
+            `).all();
+
+            const indexed = (db.prepare(`SELECT COUNT(*) AS n FROM downloads WHERE ai_indexed_at IS NOT NULL`).get() as any)?.n || 0;
+            const total = (db.prepare(`SELECT COUNT(*) AS n FROM downloads`).get() as any)?.n || 0;
+            let aiFaces = 0, aiPeople = 0, aiTags = 0;
+            try { aiFaces = (db.prepare('SELECT COUNT(*) AS n FROM faces').get() as any)?.n || 0; } catch {}
+            try { aiPeople = (db.prepare('SELECT COUNT(*) AS n FROM people').get() as any)?.n || 0; } catch {}
+            try { aiTags = (db.prepare('SELECT COUNT(*) AS n FROM image_tags').get() as any)?.n || 0; } catch {}
+
+            res.json({
+                success: true,
+                tableCounts,
+                groups,
+                totals,
+                recent,
+                ai: {
+                    indexed,
+                    total,
+                    pct: total ? Math.round(indexed / total * 100) : 0,
+                    faces: aiFaces,
+                    people: aiPeople,
+                    tags: aiTags,
+                },
+            });
+        } catch (e) {
+            res.status(500).json({ error: (e as Error).message });
+        }
+    });
+
     return router;
 }
