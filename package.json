@@ -73,7 +73,7 @@
     "sharp": "^0.34.5",
     "ssh2-sftp-client": "^11.0.0",
     "telegram": "^2.19.0",
-    "ws": "^8.20.0"
+    "ws": "^8.20.1"
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
