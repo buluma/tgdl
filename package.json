@@ -77,7 +77,7 @@
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@huggingface/transformers": "^4.2.0",
+    "@huggingface/transformers": "^4.3.0",
     "basic-ftp": "^5.0.5",
     "dropbox": "^10.46.0",
     "googleapis": "^144.0.0"
