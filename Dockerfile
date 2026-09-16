@@ -67,7 +67,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/scripts ./scripts
-COPY runner.js config.example.json package.json LICENSE README.md SECURITY.md ./
+COPY runner.js config.example.json package.json LICENSE README.md ./
 
 # Persistent state (sessions, config, downloads) — mount this as a volume.
 # `chmod a+rX` guarantees files end up readable + dirs traversable even when
