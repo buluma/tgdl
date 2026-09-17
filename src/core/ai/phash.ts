@@ -104,7 +104,14 @@ export async function computePhash(absPath) {
             .greyscale()
             .raw()
             .toBuffer();
-    } catch {
+    } catch (e) {
+        const msg = e?.message || String(e);
+        // Skip noisy logs for common non-critical cases
+        if (msg.includes('unsupported image format') || msg.includes('Input file contains unsupported')) {
+            // silent skip — not an actionable error
+        } else {
+            console.warn('pHash:', msg);
+        }
         return null;
     }
     if (!raw || raw.length < SIZE * SIZE) return null;

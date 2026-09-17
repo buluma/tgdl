@@ -98,6 +98,17 @@ const TOOLS = [
         statusUrl: '/api/ai/index/scan/status',
         wsEvents: ['ai_index_progress', 'ai_index_done', 'ai_people_progress', 'ai_people_done', 'ai_phash_progress', 'ai_phash_done', 'ai_tags_progress', 'ai_tags_done'],
     },
+    {
+        slug: 'db-stats',
+        i18nTitle: 'maintenance.hub.db-stats.title',
+        defaultTitle: 'Database stats',
+        i18nBody:  'maintenance.hub.db-stats.body',
+        defaultBody: 'Table sizes, group breakdown, file types, disk usage, and AI indexing status.',
+        icon: 'ri-database-2-line',
+        accent: 'teal',
+        statusUrl: null,
+        wsEvents: [],
+    },
 ];
 
 const ACCENT_BG = {

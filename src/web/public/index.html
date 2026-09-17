@@ -2675,6 +2675,14 @@
                     </section>
                 </div>
 
+                <div id="page-maintenance-db-stats" class="hidden max-w-5xl mx-auto px-3 sm:px-4" data-admin-only
+                     data-page-title-key="maintenance.db-stats.title"
+                     data-page-subtitle-key="maintenance.db-stats.subtitle">
+                    <div id="db-stats-root">
+                        <div class="text-center py-8 text-xs text-tg-textSecondary">Loading…</div>
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>
@@ -2948,6 +2956,11 @@
                             class="px-4 py-2 bg-tg-blue hover:bg-tg-darkBlue rounded-lg text-sm text-white flex items-center font-medium transition">
                             <i class="ri-download-line mr-2"></i><span data-i18n="viewer.video.download">Download</span>
                         </a>
+                        <button id="modal-similar" data-admin-only
+                            class="px-4 py-2 bg-tg-panel hover:bg-tg-hover rounded-lg text-sm text-tg-text flex items-center font-medium transition"
+                            title="Find similar photos using AI">
+                            <i class="ri-layout-masonry-line mr-2"></i><span>Find similar</span>
+                        </button>
                     </div>
                 </div>
             </div>

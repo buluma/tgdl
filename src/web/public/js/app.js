@@ -539,6 +539,9 @@ function renderPage(page, params = {}) {
     if (state.currentPage === 'backfill' && page !== 'backfill') {
         try { stopBackfillPage(); } catch {}
     }
+    if (state.currentPage === 'maintenance-db-stats' && page !== 'maintenance-db-stats') {
+        import('./maintenance-db-stats.js').then(m => m.stopDbStatsPage()).catch(() => {});
+    }
     state.currentPage = page;
     document.body.dataset.page = page;
     state.currentRouteParams = params;
@@ -655,6 +658,10 @@ function renderPage(page, params = {}) {
         document.getElementById('page-title').textContent = i18nT('maintenance.ai.title', 'AI Search & Smart Organisation');
         document.getElementById('page-subtitle').textContent = i18nT('maintenance.ai.subtitle', 'Local-only image embeddings, face clustering, perceptual dedup, and auto-tagging.');
         import('./maintenance-ai.js').then(m => m.init()).catch(e => console.error('maintenance-ai', e));
+    } else if (page === 'maintenance-db-stats') {
+        document.getElementById('page-title').textContent = 'Database stats';
+        document.getElementById('page-subtitle').textContent = 'Table sizes, group breakdown, file types, and AI indexing status.';
+        import('./maintenance-db-stats.js').then(m => m.showDbStatsPage()).catch(e => console.error('maintenance-db-stats', e));
     }
 }
 
@@ -716,6 +723,7 @@ function registerRoutes() {
     router.route('/maintenance/logs', () => renderPage('maintenance-logs'));
     router.route('/maintenance/backup', () => renderPage('maintenance-backup'));
     router.route('/maintenance/ai', () => renderPage('maintenance-ai'));
+    router.route('/maintenance/db-stats', () => renderPage('maintenance-db-stats'));
 }
 
 function closeSidebar() {
@@ -2200,6 +2208,9 @@ async function saveGroupSettings() {
         autoForward: {
             enabled: fwdEnabled,
             destination: fwdDest,
+            // Master toggle ON = true (delete all), OFF = false (keep all).
+            // Per-type object { photo: false, video: true, ... } can be set
+            // by editing config.json directly.
             deleteAfterForward: fwdDelete
         },
         topics: {

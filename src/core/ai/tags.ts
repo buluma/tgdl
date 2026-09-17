@@ -40,7 +40,8 @@ export async function classifyImage(absPath, cfg, onProgress, onLog) {
     const topK = Math.max(1, Math.min(20, Number(cfg?.topK) || AI_MODEL_DEFAULTS.tags.topK));
     try {
         out = await classifier(absPath, { topk: topK });
-    } catch {
+    } catch (e) {
+        (onLog || console.error)({ source: 'ai', level: 'warn', msg: `classifyImage failed: ${e?.message || e}` });
         return [];
     }
     if (!Array.isArray(out)) return [];

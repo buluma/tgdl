@@ -109,12 +109,20 @@ export class AutoForwarder {
             // hourly integrity sweep will eventually drop the orphan
             // DB row whose file is gone (or here, whose file we
             // intentionally couldn't delete).
+            //
+            // deleteAfterForward supports three forms:
+            //   true                          → delete all types
+            //   false / null / undefined       → delete nothing
+            //   { photo: false, video: true }  → per-type control
             if (settings.deleteAfterForward) {
-                try {
-                    await fs.unlink(filePath);
-                    console.log(colorize(`${getTs()} 🗑️ [AutoForward] Deleted local file: ${path.basename(filePath)}`, 'red'));
-                } catch (unlinkErr) {
-                    console.warn(colorize(`⚠️ [AutoForward] Forwarded but local delete failed for ${path.basename(filePath)}: ${unlinkErr.message}`, 'yellow'));
+                const shouldDelete = _resolveDeleteAfterForward(settings.deleteAfterForward, typeFromPath(filePath));
+                if (shouldDelete) {
+                    try {
+                        await fs.unlink(filePath);
+                        console.log(colorize(`${getTs()} 🗑️ [AutoForward] Deleted local file: ${path.basename(filePath)}`, 'red'));
+                    } catch (unlinkErr) {
+                        console.warn(colorize(`⚠️ [AutoForward] Forwarded but local delete failed for ${path.basename(filePath)}: ${unlinkErr.message}`, 'yellow'));
+                    }
                 }
             }
 
@@ -216,4 +224,38 @@ export class AutoForwarder {
 
         return null;
     }
+}
+
+/**
+ * Resolve whether a given media type should be deleted.
+ *
+ * @param {boolean|object} rule  The deleteAfterForward config value
+ * @param {string}         type  Media type: photo, video, audio, document, voice
+ * @returns {boolean}
+ */
+function _resolveDeleteAfterForward(rule, type) {
+    if (rule === true) return true;
+    if (rule === false || rule == null) return false;
+    if (typeof rule === 'object') {
+        // Only delete if the type is explicitly set to true.
+        // Missing entries default to false (don't delete).
+        return rule[type] === true;
+    }
+    return false;
+}
+
+/**
+ * Infer the media type from a file path extension.
+ */
+function typeFromPath(filePath) {
+    if (!filePath) return 'document';
+    const ext = path.extname(filePath).toLowerCase();
+    const photoExts = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.bmp', '.tiff'];
+    const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v', '.3gp'];
+    const audioExts = ['.mp3', '.ogg', '.wav', '.m4a', '.opus', '.flac', '.aac', '.wma'];
+    if (photoExts.includes(ext)) return 'photo';
+    if (videoExts.includes(ext)) return 'video';
+    if (audioExts.includes(ext)) return 'audio';
+    if (ext === '.oga' || ext === '.weba') return 'voice';
+    return 'document';
 }

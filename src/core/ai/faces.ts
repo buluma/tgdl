@@ -21,7 +21,21 @@
  * skips this module entirely and `people`/`faces` tables stay empty.
  */
 
-import { existsSync } from 'fs';
+import { existsSync, promises as fs } from 'fs';
+import os from 'os';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
+const FACES_DIR = path.join(PROJECT_ROOT, 'data', 'faces');
+
+// Ensure faces thumbnails directory exists on first use.
+async function _ensureFacesDir() {
+    try {
+        await fs.mkdir(FACES_DIR, { recursive: true });
+    } catch { /* best-effort */ }
+}
 import sharp from 'sharp';
 import { getPipeline, AI_MODEL_DEFAULTS } from './models.js';
 import { embedImage } from './embeddings.js';
@@ -98,23 +112,26 @@ export async function embedFace(absPath, bbox, cfg, onLog) {
             .resize(224, 224, { fit: 'fill' })
             .png()
             .toBuffer();
-        // Embed expects a path or a sharp-decodable buffer. Transformers.ts'
-        // image-feature-extraction pipeline handles raw Buffer via its
-        // RawImage layer. We write to a temp by writing the buffer to a
-        // data URL fallback if needed; for now the path-only flow is the
-        // lowest-friction route — most callers will have absPath available.
-        // Save to a temp would require fs.tmp + cleanup; instead we return
-        // the buffer and let embedImage decode it via the path-or-buffer
-        // overload. (Transformers.js accepts Buffer directly via RawImage.)
-        cropPath = buf;
-    } catch {
+        // Transformers.js' node image pipeline does not accept Buffer in the
+        // versions we support (RawImage.read throws "Unsupported input type:
+        // object"). Persist the crop to a temp PNG and pass that path into
+        // the shared image embedder, then remove it in finally below.
+        cropPath = path.join(os.tmpdir(), `tgdl-face-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.png`);
+        await fs.writeFile(cropPath, buf);
+    } catch (e) {
+        (onLog || console.error)({ source: 'ai', level: 'warn', msg: `embedFace sharp error: ${e?.message || e}` });
         return null;
     }
     try {
         const vec = await embedImage(cropPath, cfg, undefined, onLog);
         return vec || null;
-    } catch {
+    } catch (e) {
+        (onLog || console.error)({ source: 'ai', level: 'warn', msg: `embedFace embedImage failed: ${e?.message || e}` });
         return null;
+    } finally {
+        if (typeof cropPath === 'string') {
+            try { await fs.unlink(cropPath); } catch {}
+        }
     }
 }
 
@@ -203,4 +220,35 @@ export function dbscan(items, { epsilon = 0.4, minPoints = 3 } = {}) {
  */
 export function centroidToBlob(centroid) {
     return vectorToBlob(centroid);
+}
+
+/**
+ * Save a face thumbnail to `data/faces/{faceId}.webp`.
+ * Crops the face from the original image using the bounding box,
+ * resizes to 128×128, and saves as WebP.
+ * Returns the thumbnail path on success, or null on failure.
+ */
+export async function saveFaceThumbnail(absPath, bbox, faceId, onLog) {
+    if (!absPath || !existsSync(absPath) || faceId == null) return null;
+    await _ensureFacesDir();
+    try {
+        const meta = await sharp(absPath, { failOn: 'none' }).metadata();
+        const W = Math.max(1, meta.width || 1);
+        const H = Math.max(1, meta.height || 1);
+        const left = Math.max(0, Math.floor(bbox.x < 1 ? bbox.x * W : bbox.x));
+        const top  = Math.max(0, Math.floor(bbox.y < 1 ? bbox.y * H : bbox.y));
+        const w    = Math.max(1, Math.floor(bbox.w < 1 ? bbox.w * W : bbox.w));
+        const h    = Math.max(1, Math.floor(bbox.h < 1 ? bbox.h * H : bbox.h));
+        if (left + w > W || top + h > H) return null;
+        const outPath = path.join(FACES_DIR, `${faceId}.webp`);
+        await sharp(absPath, { failOn: 'none' })
+            .extract({ left, top, width: w, height: h })
+            .resize(128, 128, { fit: 'cover' })
+            .webp({ quality: 80 })
+            .toFile(outPath);
+        return outPath;
+    } catch (e) {
+        try { onLog?.({ source: 'ai', level: 'warn', msg: `saveFaceThumbnail #${faceId}: ${e?.message || e}` }); } catch {}
+        return null;
+    }
 }
